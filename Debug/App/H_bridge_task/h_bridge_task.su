@@ -1,0 +1,5 @@
+../App/H_bridge_task/h_bridge_task.c:35:6:H_Bridge_Task_Init	8	static
+../App/H_bridge_task/h_bridge_task.c:41:6:H_Bridge_Add_Sequence	12	static
+../App/H_bridge_task/h_bridge_task.c:48:6:H_Bridge_Clear_All_Sequences	4	static
+../App/H_bridge_task/h_bridge_task.c:53:6:H_Bridge_Task	24	static
+../App/H_bridge_task/h_bridge_task.c:92:6:H_Bridge_Pulse_Process_Task	40	static

@@ -1,0 +1,90 @@
+#ifndef H_TASK_H_
+#define H_TASK_H_
+
+#include <stdint.h>
+#include <stdbool.h>
+
+#define MAX_SEQUENCES 10
+
+typedef enum {
+	HB_PULSE_IDLE = 0,
+
+	HB_HV_POS_PULSE,
+	HB_HV_NEG_PULSE,
+	HB_HV_DELAY,
+
+	HB_LV_POS_PULSE,
+	HB_LV_NEG_PULSE,
+	HB_LV_DELAY,
+
+	HB_DELAY,
+
+	HB_SEQUENCE_DELAY,
+
+} H_Bridge_Process_State;
+
+typedef enum{
+
+	HB_TASK_IDLE= 0,
+	HB_TASK_INIT_STATE,
+	HB_TASK_PULSING
+
+}H_Bridge_Task_State;
+
+typedef struct {
+    GPIO_TypeDef* Port;
+    uint32_t HIN_Pin;
+    uint32_t LIN_Pin;
+} Pole_Def_t;
+
+typedef struct{
+	bool		is_edit_enable;
+	bool 		is_confirm;
+
+    uint16_t    sequence_delay_ms;
+
+    uint8_t     pos_pole_index;
+    uint8_t     neg_pole_index;
+
+    uint16_t    pulse_delay_ms;
+
+    uint8_t     hv_pos_count;
+    uint8_t     hv_neg_count;
+
+    uint16_t    hv_delay_ms;
+
+    uint16_t    hv_pos_on_ms;
+    uint16_t    hv_pos_off_ms;
+    uint16_t    hv_neg_on_ms;
+    uint16_t    hv_neg_off_ms;
+
+    uint8_t     lv_pos_count;
+    uint8_t     lv_neg_count;
+
+    uint16_t    lv_delay_ms;
+
+    uint16_t    lv_pos_on_ms;
+    uint16_t    lv_pos_off_ms;
+    uint16_t    lv_neg_on_ms;
+    uint16_t    lv_neg_off_ms;
+
+}H_Bridge_Sequence_t;
+
+
+extern bool is_h_bridge_enable;
+extern H_Bridge_Sequence_t Sequence_List[MAX_SEQUENCES];
+extern uint8_t 			   total_active_sequences;
+
+
+
+void H_Bridge_Task_Init(void);
+
+void H_Bridge_Clear_All_Sequences(void);
+void H_Bridge_Add_Sequence(H_Bridge_Sequence_t new_seq);
+
+
+void H_Bridge_Task(void*);
+void H_Bridge_Pulse_Process_Task(void*);
+
+
+#endif /* H_TASK_H_ */

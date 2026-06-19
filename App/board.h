@@ -1,0 +1,74 @@
+/*
+ * board.h
+ *
+ *  Created on: Jun 17, 2026
+ *      Author: PV
+ */
+
+#ifndef BOARD_H_
+#define BOARD_H_
+
+#include "stm32f4xx_ll_gpio.h"
+#include "stm32f4xx_ll_dma.h"
+
+/********************** V_BRIDGE **********************/
+
+#define V_SWITCH_EN_PORT		  GPIOB
+#define V_SWITCH_EN_PIN			  LL_GPIO_PIN_
+
+#define V_SWITCH_LIN1_HANDLE    TIM3
+#define V_SWITCH_LIN1_CHANNEL   LL_TIM_CHANNEL_CH2
+
+#define V_SWITCH_HIN1_PORT      GPIOB
+#define V_SWITCH_HIN1_PIN       LL_GPIO_PIN_6
+
+#define V_SWITCH_LIN2_HANDLE    TIM3
+#define V_SWITCH_LIN2_CHANNEL   LL_TIM_CHANNEL_CH1
+
+#define V_SWITCH_HIN2_PORT      GPIOB
+#define V_SWITCH_HIN2_PIN       LL_GPIO_PIN_3
+
+/******************************************************/
+
+/********************** H_BRIDGE **********************/
+
+#define H_BRIDGE_HANDLE_PORT  	GPIOC
+
+#define H_BRIDGE_HIN0_PIN       LL_GPIO_PIN_14
+#define H_BRIDGE_LIN0_PIN       LL_GPIO_PIN_13
+
+#define H_BRIDGE_HIN1_PIN       LL_GPIO_PIN_0
+#define H_BRIDGE_LIN1_PIN       LL_GPIO_PIN_15
+
+#define H_BRIDGE_HIN2_PIN       LL_GPIO_PIN_2
+#define H_BRIDGE_LIN2_PIN       LL_GPIO_PIN_1
+
+#define H_BRIDGE_HIN3_PIN       LL_GPIO_PIN_4
+#define H_BRIDGE_LIN3_PIN       LL_GPIO_PIN_3
+
+#define H_BRIDGE_HIN4_PIN       LL_GPIO_PIN_6
+#define H_BRIDGE_LIN4_PIN       LL_GPIO_PIN_5
+
+#define H_BRIDGE_HIN5_PIN       LL_GPIO_PIN_8
+#define H_BRIDGE_LIN5_PIN       LL_GPIO_PIN_7
+
+#define H_BRIDGE_HIN6_PIN       LL_GPIO_PIN_10
+#define H_BRIDGE_LIN6_PIN       LL_GPIO_PIN_9
+
+#define H_BRIDGE_HIN7_PIN       LL_GPIO_PIN_12
+#define H_BRIDGE_LIN7_PIN       LL_GPIO_PIN_11
+
+#define H_BRIDGE_TIM_HANDLE		TIM2
+
+#define H_BRIDGE_DMA_HANDLE		DMA1
+#define H_BRIDGE_DMA_STREAM_HANDLE		LL_DMA_STREAM_1
+
+/******************************************************/
+
+/*********************UART**********************/
+#define XBEE_UART_HANDLE       USART1
+#define XBEE_UART_IRQ          USART1_IRQn
+/***********************************************/
+
+
+#endif /* BOARD_H_ */
