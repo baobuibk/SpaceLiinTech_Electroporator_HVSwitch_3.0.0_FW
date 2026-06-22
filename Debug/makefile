@@ -20,6 +20,7 @@ RM := rm -rf
 -include Drivers/STM32F4xx_HAL_Driver/Src/subdir.mk
 -include Core/Startup/subdir.mk
 -include Core/Src/subdir.mk
+-include App/fsp_line_task/subdir.mk
 -include App/cmd_line_task/subdir.mk
 -include App/H_bridge_task/subdir.mk
 -include App/subdir.mk
@@ -45,34 +46,34 @@ $(wildcard ../makefile.init) \
 $(wildcard ../makefile.targets) \
 
 
-BUILD_ARTIFACT_NAME := HVP_FIRM_V2.1
+BUILD_ARTIFACT_NAME := HVP_FIRM_V
 BUILD_ARTIFACT_EXTENSION := elf
 BUILD_ARTIFACT_PREFIX :=
 BUILD_ARTIFACT := $(BUILD_ARTIFACT_PREFIX)$(BUILD_ARTIFACT_NAME)$(if $(BUILD_ARTIFACT_EXTENSION),.$(BUILD_ARTIFACT_EXTENSION),)
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXECUTABLES += \
-HVP_FIRM_V2.1.elf \
+HVP_FIRM_V.elf \
 
 MAP_FILES += \
-HVP_FIRM_V2.1.map \
+HVP_FIRM_V.map \
 
 SIZE_OUTPUT += \
 default.size.stdout \
 
 OBJDUMP_LIST += \
-HVP_FIRM_V2.1.list \
+HVP_FIRM_V.list \
 
 
 # All Target
 all: main-build
 
 # Main-build Target
-main-build: HVP_FIRM_V2.1.elf secondary-outputs
+main-build: HVP_FIRM_V.elf secondary-outputs
 
 # Tool invocations
-HVP_FIRM_V2.1.elf HVP_FIRM_V2.1.map: $(OBJS) $(USER_OBJS) D:\LAB209B3\SpaceLiinTech_Eletroporator\DuAn_HV_V3_Firm\HVP_FIRM_V\STM32F405RGTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "HVP_FIRM_V2.1.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"D:\LAB209B3\SpaceLiinTech_Eletroporator\DuAn_HV_V3_Firm\HVP_FIRM_V\STM32F405RGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="HVP_FIRM_V2.1.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+HVP_FIRM_V.elf HVP_FIRM_V.map: $(OBJS) $(USER_OBJS) D:\LAB209B3\SpaceLiinTech_Eletroporator\DuAn_HV_V3_Firm\HVP_FIRM_V\STM32F405RGTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "HVP_FIRM_V.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"D:\LAB209B3\SpaceLiinTech_Eletroporator\DuAn_HV_V3_Firm\HVP_FIRM_V\STM32F405RGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="HVP_FIRM_V.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -81,14 +82,14 @@ default.size.stdout: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-HVP_FIRM_V2.1.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "HVP_FIRM_V2.1.list"
+HVP_FIRM_V.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "HVP_FIRM_V.list"
 	@echo 'Finished building: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) HVP_FIRM_V2.1.elf HVP_FIRM_V2.1.list HVP_FIRM_V2.1.map default.size.stdout
+	-$(RM) HVP_FIRM_V.elf HVP_FIRM_V.list HVP_FIRM_V.map default.size.stdout
 	-@echo ' '
 
 secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)

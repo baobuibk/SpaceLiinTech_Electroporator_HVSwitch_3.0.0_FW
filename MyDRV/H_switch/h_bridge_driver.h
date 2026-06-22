@@ -9,43 +9,27 @@
 #include "stm32f4xx_ll_tim.h"
 #include "v_switch_driver.h"
 
-#define HB_PULSE_STATE_PERIOD		2000 //MS
-
-
+#define MAX_EVENTS 3200
 
 typedef struct
 {
-    GPIO_TypeDef* Port;
+    uint32_t gpio_bsrr;
+    uint32_t dt;
+} event_t;
 
-    uint32_t        Pos_HIN_Pin;
-    uint32_t        Pos_LIN_Pin;
-    uint32_t        Neg_HIN_Pin;
-    uint32_t        Neg_LIN_Pin;
-} HBridge_Config_t;
+typedef enum
+{
+    HB_FLOAT = 0,
+    HB_HIGH,
+    HB_LOW
+} hb_state_t;
 
+void HB_Pulse(uint8_t ch, uint8_t mass_ch, uint32_t ton_us, uint32_t toff_us, uint32_t dead_us, uint8_t count);
 
+void HB_Delay(uint8_t ch_1, uint8_t ch_2, uint32_t delay_us);
 
-//extern bool is_sequence_done;
-
-void HB_Init(HBridge_Config_t *p_cfg);
-
-
-void HB_Force_Safe_State(void);
-
-
-uint16_t HB_Build_Pulse_Buff(uint16_t on_time_ms, uint16_t off_time_ms);
-
-
-uint16_t HB_Build_Delay_Buff(uint16_t delay_time_ms);
-
-
-void HB_Start_DMA_Sequence(uint16_t buffer_length, uint32_t num_pulse);
-
-
-void HB_Pulse_DMA_ISR(void);
-
+void HB_Start(void);
 
 bool HB_Is_Phase_Done(void);
-
 
 #endif /* H_BRIDGE_DRIVER_H_ */

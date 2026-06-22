@@ -33,13 +33,14 @@ EmbeddedCli 		*p_XBEE_CLI = NULL;
 
 void CMD_Line_Task_Init(void){
 
-	UART_Driver_Init(&XBEE_UART, "DEBUG_UART", XBEE_UART_HANDLE, XBEE_UART_IRQ,
-					g_XBEE_UART_TX_buffer, g_XBEE_UART_RX_buffer,
-					sizeof(g_XBEE_UART_TX_buffer),sizeof(g_XBEE_UART_RX_buffer));
+	UART_Driver_Init(	&XBEE_UART, "DEBUG_UART", XBEE_UART_HANDLE, XBEE_UART_IRQ,
+						g_XBEE_UART_TX_buffer, g_XBEE_UART_RX_buffer,
+						sizeof(g_XBEE_UART_TX_buffer), sizeof(g_XBEE_UART_RX_buffer));
 
-	p_XBEE_CLI = SystemCLI_Init(&XBEE_UART, g_XBEE_CMD_line_buffer, sizeof(g_XBEE_CMD_line_buffer));
+	p_XBEE_CLI = SystemCLI_Init(&XBEE_UART, g_XBEE_CMD_line_buffer,
+			sizeof(g_XBEE_CMD_line_buffer));
 
-	UART_Driver_SendString(&XBEE_UART, "B");
+	LL_USART_TransmitData8(XBEE_UART_HANDLE, "B\n\r");
 	UART_Driver_SendString(&XBEE_UART, "\n\r WELCOME GP-3000 \n\r");
 
 	CMD_line_handle = &XBEE_UART;

@@ -22,7 +22,8 @@
 #include "stm32f4xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "xbee_cmd_task.h"
+#include "stm32f4xx_ll_gpio.h"
+#include "app.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -200,25 +201,25 @@ void SysTick_Handler(void)
 /******************************************************************************/
 
 /**
-  * @brief This function handles DMA1 stream1 global interrupt.
-  */
-void DMA1_Stream1_IRQHandler(void)
-{
-  /* USER CODE BEGIN DMA1_Stream1_IRQn 0 */
-	void HB_Pulse_DMA_ISR();
-
-  /* USER CODE END DMA1_Stream1_IRQn 0 */
-  /* USER CODE BEGIN DMA1_Stream1_IRQn 1 */
-
-  /* USER CODE END DMA1_Stream1_IRQn 1 */
-}
-
-/**
   * @brief This function handles TIM2 global interrupt.
   */
 void TIM2_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM2_IRQn 0 */
+
+	if (LL_TIM_IsActiveFlag_UPDATE(TIM2) == 1)
+	  {
+	    /* 2. Kiểm tra xem ngắt cập nhật (UIE) có đang được cấp phép không */
+	    if (LL_TIM_IsEnabledIT_UPDATE(TIM2) == 1)
+	    {
+	      /* 3. XÓA CỜ NGẮT UIF VỀ 0
+	       * (Bắt buộc phải có để CPU không bị kẹt lại trong hàm ngắt này) */
+	      LL_TIM_ClearFlag_UPDATE(TIM2);
+
+	      /* 4. Thực thi công việc: Đảo trạng thái chân PB6 */
+	      LL_GPIO_TogglePin(GPIOB, LL_GPIO_PIN_6);
+	    }
+	  }
 
   /* USER CODE END TIM2_IRQn 0 */
   /* USER CODE BEGIN TIM2_IRQn 1 */
@@ -232,12 +233,26 @@ void TIM2_IRQHandler(void)
 void USART1_IRQHandler(void)
 {
   /* USER CODE BEGIN USART1_IRQn 0 */
+
 	UART_Driver_ISR(&XBEE_UART);
 
   /* USER CODE END USART1_IRQn 0 */
   /* USER CODE BEGIN USART1_IRQn 1 */
 
   /* USER CODE END USART1_IRQn 1 */
+}
+
+/**
+  * @brief This function handles UART4 global interrupt.
+  */
+void UART4_IRQHandler(void)
+{
+  /* USER CODE BEGIN UART4_IRQn 0 */
+
+  /* USER CODE END UART4_IRQn 0 */
+  /* USER CODE BEGIN UART4_IRQn 1 */
+
+  /* USER CODE END UART4_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */

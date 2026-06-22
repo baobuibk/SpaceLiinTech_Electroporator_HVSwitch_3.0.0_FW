@@ -1,2 +1,2 @@
-../App/app.c:24:6:App_Main	8	static
-../App/app.c:40:13:Status_Led	16	static
+../App/app.c:21:6:App_Main	8	static
+../App/app.c:35:13:Status_Led	16	static

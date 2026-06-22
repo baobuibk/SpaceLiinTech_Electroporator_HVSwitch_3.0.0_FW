@@ -14,7 +14,7 @@
 /********************** V_BRIDGE **********************/
 
 #define V_SWITCH_EN_PORT		  GPIOB
-#define V_SWITCH_EN_PIN			  LL_GPIO_PIN_
+#define V_SWITCH_EN_PIN			  LL_GPIO_PIN_7
 
 #define V_SWITCH_LIN1_HANDLE    TIM3
 #define V_SWITCH_LIN1_CHANNEL   LL_TIM_CHANNEL_CH2
@@ -27,6 +27,8 @@
 
 #define V_SWITCH_HIN2_PORT      GPIOB
 #define V_SWITCH_HIN2_PIN       LL_GPIO_PIN_3
+
+#define V_SWITCH_TIM_BASE		TIM2;
 
 /******************************************************/
 
@@ -58,16 +60,23 @@
 #define H_BRIDGE_HIN7_PIN       LL_GPIO_PIN_12
 #define H_BRIDGE_LIN7_PIN       LL_GPIO_PIN_11
 
-#define H_BRIDGE_TIM_HANDLE		TIM2
+#define H_BRIDGE_TIM_HANDLE		TIM1
 
-#define H_BRIDGE_DMA_HANDLE		DMA1
-#define H_BRIDGE_DMA_STREAM_HANDLE		LL_DMA_STREAM_1
+#define H_BRIDGE_DMA_HANDLE		DMA2
+#define H_BRIDGE_DMA_STREAM_HANDLE		LL_DMA_STREAM_5
 
 /******************************************************/
 
 /*********************UART**********************/
-#define XBEE_UART_HANDLE       USART1
-#define XBEE_UART_IRQ          USART1_IRQn
+#define XBEE_UART_HANDLE       	USART1
+#define XBEE_UART_IRQ          	USART1_IRQn
+
+#define GPC_UART_HANDLE			UART4
+#define GPC_UART_IRQ			UART4_IRQn
+
+#define GPC_TX_SIZE			    128
+#define	GPC_RX_SIZE			    128
+#define FSP_BUF_LEN				128
 /***********************************************/
 
 

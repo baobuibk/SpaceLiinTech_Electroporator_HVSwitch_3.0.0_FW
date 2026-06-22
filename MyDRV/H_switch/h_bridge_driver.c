@@ -1,124 +1,171 @@
 #include "board.h"
 #include "h_bridge_driver.h"
 
-#include <string.h>
-#include <stdint.h>
-#include <stdbool.h>
+// #include "Pulsing_Core.h"
+#include "main.h"
 
-uint32_t HB_Pulse_Port_Buff[HB_PULSE_STATE_PERIOD];
+// event_t event_buf[MAX_EVENTS];
+uint32_t arr_buf[MAX_EVENTS];
+uint32_t gpio_buf[MAX_EVENTS];
 
+static volatile bool is_sequence_done = false;
 
-static HBridge_Config_t     current_hb_cfg;
-static HBridge_Config_t* 	p_hb_state = NULL;
+typedef struct {
+    GPIO_TypeDef* Port;
+    uint32_t HIN_Pin;
+    uint32_t LIN_Pin;
+} HB_Pole_Def_t;
 
-static volatile uint32_t    pulse_cnt = 0;
-static volatile bool        is_sequence_done = true;
-static uint16_t             current_buff_len = 0;
+const HB_Pole_Def_t HB_POLES[8] = {
+    { H_BRIDGE_HANDLE_PORT, H_BRIDGE_HIN0_PIN, H_BRIDGE_LIN0_PIN },
+    { H_BRIDGE_HANDLE_PORT, H_BRIDGE_HIN1_PIN, H_BRIDGE_LIN1_PIN },
+    { H_BRIDGE_HANDLE_PORT, H_BRIDGE_HIN2_PIN, H_BRIDGE_LIN2_PIN },
+    { H_BRIDGE_HANDLE_PORT, H_BRIDGE_HIN3_PIN, H_BRIDGE_LIN3_PIN },
+    { H_BRIDGE_HANDLE_PORT, H_BRIDGE_HIN4_PIN, H_BRIDGE_LIN4_PIN },
+    { H_BRIDGE_HANDLE_PORT, H_BRIDGE_HIN5_PIN, H_BRIDGE_LIN5_PIN },
+    { H_BRIDGE_HANDLE_PORT, H_BRIDGE_HIN6_PIN, H_BRIDGE_LIN6_PIN },
+    { H_BRIDGE_HANDLE_PORT, H_BRIDGE_HIN7_PIN, H_BRIDGE_LIN7_PIN }
+};
 
-void HB_Init(HBridge_Config_t *p_cfg) {
-    if (p_cfg == NULL) return;
+volatile uint16_t event_count;
 
-    current_hb_cfg = *p_cfg;
-    p_hb_state = &current_hb_cfg;
+static uint32_t HB_GetBSRR(uint8_t ch, uint8_t mass_ch, hb_state_t state) {
 
-    HB_Force_Safe_State();
+    uint32_t hin = HB_POLES[ch].HIN_Pin;
+    uint32_t lin = HB_POLES[ch].LIN_Pin;
 
-    LL_DMA_DisableStream(H_BRIDGE_DMA_HANDLE, H_BRIDGE_DMA_STREAM_HANDLE);
-    LL_TIM_EnableDMAReq_UPDATE(H_BRIDGE_TIM_HANDLE);
+    uint32_t mass_hin = HB_POLES[mass_ch].HIN_Pin;
+    uint32_t mass_lin = HB_POLES[mass_ch].LIN_Pin;
+
+	switch (state) {
+	case HB_HIGH:
+		return (lin << 16) | (mass_hin << 16) | mass_lin | hin;
+
+	case HB_LOW:
+		return (hin << 16) | (mass_hin << 16) | mass_lin | lin;
+
+	default:
+		return (hin << 16) | (mass_hin << 16) | (lin << 16);
+	}
 }
 
-void HB_Force_Safe_State(void) {
-    if (p_hb_state == NULL) return;
+void Wave_Add(uint32_t bsrr, uint32_t dt) {
 
-    uint32_t safe_val = (p_hb_state->Pos_HIN_Pin << 16) |
-                        (p_hb_state->Pos_LIN_Pin << 16) |
-                        (p_hb_state->Neg_HIN_Pin << 16) |
-                        (p_hb_state->Neg_LIN_Pin << 16);
+    gpio_buf[event_count] = bsrr;
+    arr_buf[event_count]  = dt;
 
-    p_hb_state->Port->BSRR = safe_val;
+    event_count++;
 }
 
-uint16_t HB_Build_Pulse_Buff(uint16_t on_time_ms, uint16_t off_time_ms) {
-    if (p_hb_state == NULL) return 0;
+void HB_Pulse(uint8_t ch, uint8_t mass_ch, uint32_t ton_us, uint32_t toff_us, uint32_t dead_us, uint8_t count) {
 
-    uint16_t total_time = on_time_ms + off_time_ms;
-    if (total_time > HB_PULSE_STATE_PERIOD) return 0;
+	Wave_Add(HB_GetBSRR(ch, mass_ch, HB_FLOAT), dead_us);
 
-    uint32_t state_on_val = 0;
-    uint32_t state_off_val = 0;
+	Wave_Add(HB_GetBSRR(ch, mass_ch, HB_HIGH), ton_us);
 
-    state_on_val |= (p_hb_state->Pos_HIN_Pin) | (p_hb_state->Neg_LIN_Pin);
-    state_on_val |= (p_hb_state->Pos_LIN_Pin << 16) | (p_hb_state->Neg_HIN_Pin << 16);
+	Wave_Add(HB_GetBSRR(ch, mass_ch, HB_FLOAT), dead_us);
 
-    state_off_val |= (p_hb_state->Neg_HIN_Pin) | (p_hb_state->Pos_LIN_Pin);
-    state_off_val |= (p_hb_state->Neg_LIN_Pin << 16) | (p_hb_state->Pos_HIN_Pin << 16);
+	Wave_Add(HB_GetBSRR(ch, mass_ch, HB_LOW), toff_us);
 
-    for(uint16_t time_cnt = 0; time_cnt < total_time; time_cnt++) {
-        if (time_cnt < on_time_ms)
-            HB_Pulse_Port_Buff[time_cnt] = state_on_val;
-        else
-            HB_Pulse_Port_Buff[time_cnt] = state_off_val;
-    }
+	Wave_Add(HB_GetBSRR(ch, mass_ch, HB_FLOAT), dead_us);
 
-    return total_time;
+	for (uint8_t i = 1; i < (count - 1); i++) {
+		Wave_Add(HB_GetBSRR(ch, mass_ch, HB_HIGH), ton_us);
+
+		Wave_Add(HB_GetBSRR(ch, mass_ch, HB_FLOAT), dead_us);
+
+		Wave_Add(HB_GetBSRR(ch, mass_ch, HB_LOW), toff_us);
+
+		Wave_Add(HB_GetBSRR(ch, mass_ch, HB_FLOAT), dead_us);
+	}
+
+	Wave_Add(HB_GetBSRR(ch, mass_ch, HB_HIGH), ton_us);
+
+	Wave_Add(HB_GetBSRR(ch, mass_ch, HB_FLOAT), dead_us);
+
+	Wave_Add(HB_GetBSRR(ch, mass_ch, HB_LOW), toff_us);
 }
 
-uint16_t HB_Build_Delay_Buff(uint16_t delay_time_ms) {
-    if (p_hb_state == NULL || delay_time_ms > HB_PULSE_STATE_PERIOD) return 0;
+void HB_Delay(uint8_t ch_1, uint8_t ch_2, uint32_t delay_us) {
 
-    uint32_t state_idle_val = 0;
+	Wave_Add(HB_GetBSRR(ch_1, ch_2, HB_LOW), delay_us);
 
-    state_idle_val |= (p_hb_state->Pos_HIN_Pin << 16) | (p_hb_state->Pos_LIN_Pin << 16) |
-                      (p_hb_state->Neg_HIN_Pin << 16) | (p_hb_state->Neg_LIN_Pin << 16);
-
-    for(uint16_t time_cnt = 0; time_cnt < delay_time_ms; time_cnt++) {
-        HB_Pulse_Port_Buff[time_cnt] = state_idle_val;
-    }
-
-    return delay_time_ms;
 }
 
-void HB_Start_DMA_Sequence(uint16_t buffer_length, uint32_t num_pulse) {
-    if (p_hb_state == NULL || buffer_length == 0) return;
+void DMA_GPIO_Start(uint32_t len)
+{
+    LL_DMA_DisableStream(DMA2, LL_DMA_STREAM_5);
 
-    current_buff_len = buffer_length;
-    is_sequence_done = false;
+    while(LL_DMA_IsEnabledStream(DMA2, LL_DMA_STREAM_5));
 
-    pulse_cnt = num_pulse;
+	LL_DMA_SetPeriphAddress(DMA2,LL_DMA_STREAM_5, (uint32_t) &GPIOC->BSRR);
 
-    LL_TIM_DisableCounter(H_BRIDGE_TIM_HANDLE);
-    LL_DMA_DisableStream(H_BRIDGE_DMA_HANDLE, H_BRIDGE_DMA_STREAM_HANDLE);
+    LL_DMA_SetMemoryAddress(DMA2,LL_DMA_STREAM_5,(uint32_t)gpio_buf);
 
+	LL_DMA_SetDataLength(DMA2,LL_DMA_STREAM_5, len);
 
-    LL_DMA_SetPeriphAddress(H_BRIDGE_DMA_HANDLE, H_BRIDGE_DMA_STREAM_HANDLE, (uint32_t)&p_hb_state->Port->BSRR);
-    LL_DMA_SetMemoryAddress(H_BRIDGE_DMA_HANDLE, H_BRIDGE_DMA_STREAM_HANDLE, (uint32_t)HB_Pulse_Port_Buff);
-    LL_DMA_SetDataLength(H_BRIDGE_DMA_HANDLE, H_BRIDGE_DMA_STREAM_HANDLE, current_buff_len);
+	LL_DMA_EnableStream(DMA2,LL_DMA_STREAM_5);
 
-    LL_DMA_EnableStream(H_BRIDGE_DMA_HANDLE, H_BRIDGE_DMA_STREAM_HANDLE);
-    LL_TIM_SetCounter(H_BRIDGE_TIM_HANDLE, 0);
-    LL_TIM_EnableCounter(H_BRIDGE_TIM_HANDLE);
+	LL_DMA_EnableIT_TC(DMA2,LL_DMA_STREAM_5);
+}
+
+void DMA_ARR_Start(uint32_t len)
+{
+    LL_DMA_DisableStream(DMA2, LL_DMA_STREAM_4);
+
+    while(LL_DMA_IsEnabledStream(DMA2, LL_DMA_STREAM_4));
+
+	LL_DMA_SetPeriphAddress(DMA2,LL_DMA_STREAM_4, (uint32_t) &TIM1->ARR);
+
+	LL_DMA_SetMemoryAddress(DMA2,LL_DMA_STREAM_4, (uint32_t) arr_buf);
+
+	LL_DMA_SetDataLength(DMA2,LL_DMA_STREAM_4, len);
+
+	LL_DMA_EnableStream(DMA2,LL_DMA_STREAM_4);
 }
 
 bool HB_Is_Phase_Done(void) {
     return is_sequence_done;
 }
 
-void HB_Pulse_DMA_ISR(void) {
-    if (LL_DMA_IsActiveFlag_TC1(H_BRIDGE_DMA_HANDLE)) {
-        LL_DMA_ClearFlag_TC1(H_BRIDGE_DMA_HANDLE);
+void HB_Start(void)
+{
+    is_sequence_done = false;
 
-        pulse_cnt--;
-        if (pulse_cnt > 0) {
-            LL_DMA_DisableStream(H_BRIDGE_DMA_HANDLE, H_BRIDGE_DMA_STREAM_HANDLE);
-            LL_DMA_SetDataLength(H_BRIDGE_DMA_HANDLE, H_BRIDGE_DMA_STREAM_HANDLE, current_buff_len);
-            LL_DMA_EnableStream(H_BRIDGE_DMA_HANDLE, H_BRIDGE_DMA_STREAM_HANDLE);
-        } else {
-            LL_TIM_DisableCounter(H_BRIDGE_TIM_HANDLE);
-            LL_DMA_DisableStream(H_BRIDGE_DMA_HANDLE, H_BRIDGE_DMA_STREAM_HANDLE);
+    DMA_GPIO_Start(event_count);
 
-            HB_Force_Safe_State();
+    DMA_ARR_Start(event_count);
+    LL_TIM_SetCounter(TIM1, 0);
 
-            is_sequence_done = true;
-        }
+    LL_TIM_DisableARRPreload(TIM1);
+
+//    TIM1->ARR  = arr_buf[0];
+    TIM1->ARR  = 500;
+    TIM1->CCR4 = 1;
+
+    LL_TIM_EnableARRPreload(TIM1);
+
+    LL_TIM_EnableDMAReq_UPDATE(TIM1);
+    LL_TIM_EnableDMAReq_CC4(TIM1);
+
+    LL_TIM_EnableCounter(TIM1);
+}
+
+void DMA2_Stream5_IRQHandler(void)
+{
+    if(LL_DMA_IsActiveFlag_TC5(DMA2))
+    {
+        LL_DMA_ClearFlag_TC5(DMA2);
+
+        LL_TIM_DisableCounter(TIM1);
+
+        LL_TIM_DisableDMAReq_UPDATE(TIM1);
+        LL_TIM_DisableDMAReq_CC4(TIM1);
+
+        LL_DMA_DisableStream(DMA2,LL_DMA_STREAM_5);
+
+        LL_DMA_DisableStream( DMA2,LL_DMA_STREAM_4);
+
+        is_sequence_done = true;
     }
 }

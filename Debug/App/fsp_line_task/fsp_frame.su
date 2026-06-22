@@ -1,0 +1,2 @@
+../App/fsp_line_task/fsp_frame.c:29:9:FSP_Line_Process	80	static
+../App/fsp_line_task/fsp_frame.c:88:13:fsp_print	48	static

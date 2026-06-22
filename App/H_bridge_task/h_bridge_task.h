@@ -31,12 +31,6 @@ typedef enum{
 
 }H_Bridge_Task_State;
 
-typedef struct {
-    GPIO_TypeDef* Port;
-    uint32_t HIN_Pin;
-    uint32_t LIN_Pin;
-} Pole_Def_t;
-
 typedef struct{
 	bool		is_edit_enable;
 	bool 		is_confirm;
@@ -79,12 +73,8 @@ extern uint8_t 			   total_active_sequences;
 
 void H_Bridge_Task_Init(void);
 
-void H_Bridge_Clear_All_Sequences(void);
-void H_Bridge_Add_Sequence(H_Bridge_Sequence_t new_seq);
-
-
 void H_Bridge_Task(void*);
-void H_Bridge_Pulse_Process_Task(void*);
+
 
 
 #endif /* H_TASK_H_ */
