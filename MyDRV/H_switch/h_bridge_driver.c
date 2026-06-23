@@ -85,6 +85,11 @@ uint32_t HB_Delay(uint8_t ch_1, uint8_t ch_2, uint32_t delay_us) {
     return delay_us;
 }
 
+void HB_Off(void){
+
+	GPIOC->BSRR = 0xFFFF0000;
+}
+
 void DMA_GPIO_Start(uint32_t len)
 {
     LL_DMA_DisableStream(DMA2, LL_DMA_STREAM_5);

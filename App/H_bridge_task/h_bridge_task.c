@@ -26,8 +26,8 @@ static H_Bridge_Sequence_t default_sequence = {
 
     .sequence_delay_ms = 1,
 
-    .pos_pole_index = 0,
-    .neg_pole_index = 1,
+    .pos_pole_index = 1,
+    .neg_pole_index = 6,
 
     .hv_pos_count = 3,
     .hv_neg_count = 3,
@@ -155,6 +155,7 @@ void H_Bridge_Task(void *) {
                 total_active_sequences = 0;
                 is_h_bridge_enable = false;
 
+                HB_Off();
                 VS_Off();
 
                 break;
