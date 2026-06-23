@@ -1,9 +1,10 @@
 #include "board.h"
 #include "h_bridge_driver.h"
 
-// #include "Pulsing_Core.h"
+
 #include "main.h"
 
+#include "string.h"
 // event_t event_buf[MAX_EVENTS];
 uint32_t arr_buf[MAX_EVENTS];
 uint32_t gpio_buf[MAX_EVENTS];
@@ -57,39 +58,31 @@ void Wave_Add(uint32_t bsrr, uint32_t dt) {
     event_count++;
 }
 
-void HB_Pulse(uint8_t ch, uint8_t mass_ch, uint32_t ton_us, uint32_t toff_us, uint32_t dead_us, uint8_t count) {
+uint32_t HB_Pulse(uint8_t ch, uint8_t mass_ch, uint32_t ton_us, uint32_t toff_us, uint32_t dead_us, uint8_t count) {
 
-	Wave_Add(HB_GetBSRR(ch, mass_ch, HB_FLOAT), dead_us);
+    uint32_t toltal_time = 0;
 
-	Wave_Add(HB_GetBSRR(ch, mass_ch, HB_HIGH), ton_us);
+    for(uint8_t i = 0; i < count; i++){
 
-	Wave_Add(HB_GetBSRR(ch, mass_ch, HB_FLOAT), dead_us);
+        Wave_Add(HB_GetBSRR(ch, mass_ch, HB_FLOAT), dead_us);
 
-	Wave_Add(HB_GetBSRR(ch, mass_ch, HB_LOW), toff_us);
-
-	Wave_Add(HB_GetBSRR(ch, mass_ch, HB_FLOAT), dead_us);
-
-	for (uint8_t i = 1; i < (count - 1); i++) {
-		Wave_Add(HB_GetBSRR(ch, mass_ch, HB_HIGH), ton_us);
+        Wave_Add(HB_GetBSRR(ch, mass_ch, HB_HIGH), ton_us);
 
 		Wave_Add(HB_GetBSRR(ch, mass_ch, HB_FLOAT), dead_us);
 
 		Wave_Add(HB_GetBSRR(ch, mass_ch, HB_LOW), toff_us);
 
-		Wave_Add(HB_GetBSRR(ch, mass_ch, HB_FLOAT), dead_us);
-	}
-
-	Wave_Add(HB_GetBSRR(ch, mass_ch, HB_HIGH), ton_us);
-
-	Wave_Add(HB_GetBSRR(ch, mass_ch, HB_FLOAT), dead_us);
-
-	Wave_Add(HB_GetBSRR(ch, mass_ch, HB_LOW), toff_us);
+        toltal_time += (ton_us + 1) + (toff_us + 1) + dead_us*2;
+    }
+    
+    return toltal_time; //This function return total time in us
 }
 
-void HB_Delay(uint8_t ch_1, uint8_t ch_2, uint32_t delay_us) {
+uint32_t HB_Delay(uint8_t ch_1, uint8_t ch_2, uint32_t delay_us) {
 
 	Wave_Add(HB_GetBSRR(ch_1, ch_2, HB_LOW), delay_us);
 
+    return delay_us;
 }
 
 void DMA_GPIO_Start(uint32_t len)
@@ -128,6 +121,13 @@ bool HB_Is_Phase_Done(void) {
     return is_sequence_done;
 }
 
+void HB_Clear_Sequence(void) {
+    event_count = 0;
+
+    memset(arr_buf, 0, sizeof(arr_buf));
+    memset(gpio_buf, 0, sizeof(gpio_buf));
+}
+
 void HB_Start(void)
 {
     is_sequence_done = false;
@@ -139,8 +139,7 @@ void HB_Start(void)
 
     LL_TIM_DisableARRPreload(TIM1);
 
-//    TIM1->ARR  = arr_buf[0];
-    TIM1->ARR  = 500;
+    TIM1->ARR  = 499;
     TIM1->CCR4 = 1;
 
     LL_TIM_EnableARRPreload(TIM1);
@@ -160,12 +159,32 @@ void DMA2_Stream5_IRQHandler(void)
         LL_TIM_DisableCounter(TIM1);
 
         LL_TIM_DisableDMAReq_UPDATE(TIM1);
-        LL_TIM_DisableDMAReq_CC4(TIM1);
+//        LL_TIM_DisableDMAReq_CC4(TIM1);
 
         LL_DMA_DisableStream(DMA2,LL_DMA_STREAM_5);
+
+//        LL_DMA_DisableStream( DMA2,LL_DMA_STREAM_4);
+
+        is_sequence_done = true;
+    }
+}
+
+void DMA2_Stream4_IRQHandler(void)
+{
+    if(LL_DMA_IsActiveFlag_TC4(DMA2))
+    {
+        LL_DMA_ClearFlag_TC4(DMA2);
+
+        LL_TIM_DisableCounter(TIM1);
+
+//        LL_TIM_DisableDMAReq_UPDATE(TIM1);
+        LL_TIM_DisableDMAReq_CC4(TIM1);
+
+//        LL_DMA_DisableStream(DMA2,LL_DMA_STREAM_5);
 
         LL_DMA_DisableStream( DMA2,LL_DMA_STREAM_4);
 
         is_sequence_done = true;
     }
 }
+

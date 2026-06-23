@@ -5,13 +5,13 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
-../MyDRV/V_switch/v_switch._driver.c 
+../MyDRV/V_switch/vswitch.c 
 
 OBJS += \
-./MyDRV/V_switch/v_switch._driver.o 
+./MyDRV/V_switch/vswitch.o 
 
 C_DEPS += \
-./MyDRV/V_switch/v_switch._driver.d 
+./MyDRV/V_switch/vswitch.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes
@@ -21,7 +21,7 @@ MyDRV/V_switch/%.o MyDRV/V_switch/%.su MyDRV/V_switch/%.cyclo: ../MyDRV/V_switch
 clean: clean-MyDRV-2f-V_switch
 
 clean-MyDRV-2f-V_switch:
-	-$(RM) ./MyDRV/V_switch/v_switch._driver.cyclo ./MyDRV/V_switch/v_switch._driver.d ./MyDRV/V_switch/v_switch._driver.o ./MyDRV/V_switch/v_switch._driver.su
+	-$(RM) ./MyDRV/V_switch/vswitch.cyclo ./MyDRV/V_switch/vswitch.d ./MyDRV/V_switch/vswitch.o ./MyDRV/V_switch/vswitch.su
 
 .PHONY: clean-MyDRV-2f-V_switch
 

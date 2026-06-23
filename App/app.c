@@ -21,7 +21,7 @@ tSchedulerTask 	g_psSchedulerTable[SCHEDULER_TASK_COUNT] =
 void App_Main(void)
 {
     CMD_Line_Task_Init();
-    V_Switch_Driver_Init();
+    VS_Init();
     H_Bridge_Task_Init();
 
     SchedulerInit(10000);

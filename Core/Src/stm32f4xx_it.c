@@ -201,33 +201,6 @@ void SysTick_Handler(void)
 /******************************************************************************/
 
 /**
-  * @brief This function handles TIM2 global interrupt.
-  */
-void TIM2_IRQHandler(void)
-{
-  /* USER CODE BEGIN TIM2_IRQn 0 */
-
-	if (LL_TIM_IsActiveFlag_UPDATE(TIM2) == 1)
-	  {
-	    /* 2. Kiểm tra xem ngắt cập nhật (UIE) có đang được cấp phép không */
-	    if (LL_TIM_IsEnabledIT_UPDATE(TIM2) == 1)
-	    {
-	      /* 3. XÓA CỜ NGẮT UIF VỀ 0
-	       * (Bắt buộc phải có để CPU không bị kẹt lại trong hàm ngắt này) */
-	      LL_TIM_ClearFlag_UPDATE(TIM2);
-
-	      /* 4. Thực thi công việc: Đảo trạng thái chân PB6 */
-	      LL_GPIO_TogglePin(GPIOB, LL_GPIO_PIN_6);
-	    }
-	  }
-
-  /* USER CODE END TIM2_IRQn 0 */
-  /* USER CODE BEGIN TIM2_IRQn 1 */
-
-  /* USER CODE END TIM2_IRQn 1 */
-}
-
-/**
   * @brief This function handles USART1 global interrupt.
   */
 void USART1_IRQHandler(void)

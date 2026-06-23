@@ -18,7 +18,7 @@
 "./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_usart.o"
 "./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_utils.o"
 "./MyDRV/H_switch/h_bridge_driver.o"
-"./MyDRV/V_switch/v_switch._driver.o"
+"./MyDRV/V_switch/vswitch.o"
 "./MyDRV/cli/CLI_Setup/cli_setup.o"
 "./MyDRV/cli/CLI_Src/embedded_cli.o"
 "./MyDRV/fsp/crc16.o"
