@@ -27,7 +27,7 @@ typedef enum
 uint32_t HB_Pulse(uint8_t ch, uint8_t mass_ch, uint32_t ton_us, uint32_t toff_us, uint32_t dead_us, uint8_t count) ;
 
 uint32_t HB_Delay(uint8_t ch_1, uint8_t ch_2, uint32_t delay_us);
-
+void HB_Off(void);
 void HB_Start(void);
 
 bool HB_Is_Phase_Done(void);
