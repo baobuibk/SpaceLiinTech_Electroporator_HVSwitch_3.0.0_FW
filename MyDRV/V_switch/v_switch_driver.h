@@ -23,6 +23,13 @@ typedef enum _V_Switch_mode_typedef_
 
 }V_Switch_mode;
 
+typedef enum _V_Switch_state_typedef_
+{
+    V_SWITCH_STATE_ON = 0,
+	V_SWITCH_STATE_DEADTIME
+
+}V_Switch_state;
+
 typedef struct _V_Switch_typdef_
 {
     GPIO_TypeDef    *Port;
@@ -36,7 +43,11 @@ extern V_Switch_typdef V_Switch_HV;
 extern V_Switch_typdef V_Switch_LV;
 
 void V_Switch_Driver_Init(void);
-
+void V_Switch_Start(void);
+void V_Switch_Change_Phase_Calc(uint32_t HV_on_us, uint32_t LV_on_us, uint32_t dead_us, uint8_t seq_idx);
+void V_Switch_Clear_BuffARR(void);
 void V_Switch_Set_Mode(V_Switch_mode SetMode);
+
+void V_Switch_ISR(void);
 
 #endif /* V_SWITCH_V_SWITCH_DRIVER_H_ */

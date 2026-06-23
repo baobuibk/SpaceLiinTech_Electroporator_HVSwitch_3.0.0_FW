@@ -4,214 +4,161 @@
 
 #include "h_bridge_task.h"
 #include "h_bridge_driver.h"
-#include "v_switch_driver.h"
+#include "vswitch.h"
 
 #include <stdint.h>
 #include <stdbool.h>
 
-const Pole_Def_t SYSTEM_POLES[8] = {
-    { H_BRIDGE_HANDLE_PORT, H_BRIDGE_HIN0_PIN, H_BRIDGE_LIN0_PIN },
-    { H_BRIDGE_HANDLE_PORT, H_BRIDGE_HIN1_PIN, H_BRIDGE_LIN1_PIN },
-    { H_BRIDGE_HANDLE_PORT, H_BRIDGE_HIN2_PIN, H_BRIDGE_LIN2_PIN },
-    { H_BRIDGE_HANDLE_PORT, H_BRIDGE_HIN3_PIN, H_BRIDGE_LIN3_PIN },
-    { H_BRIDGE_HANDLE_PORT, H_BRIDGE_HIN4_PIN, H_BRIDGE_LIN4_PIN },
-    { H_BRIDGE_HANDLE_PORT, H_BRIDGE_HIN5_PIN, H_BRIDGE_LIN5_PIN },
-    { H_BRIDGE_HANDLE_PORT, H_BRIDGE_HIN6_PIN, H_BRIDGE_LIN6_PIN },
-    { H_BRIDGE_HANDLE_PORT, H_BRIDGE_HIN7_PIN, H_BRIDGE_LIN7_PIN }
-};
+
 
 bool is_h_bridge_enable = false;
 
 H_Bridge_Sequence_t Sequence_List[MAX_SEQUENCES] = { 0 };
 uint8_t total_active_sequences = 0;
-
-H_Bridge_Process_State  H_Bridge_Pulse_Process;
 H_Bridge_Task_State     H_Bridge_State;
 
-static uint8_t current_HB_sequence = 0;
+static uint8_t current_HB_sequence_index = 0;
+
+
+static H_Bridge_Sequence_t default_sequence = {
+    .is_edit_enable = false,
+	.is_confirm = false,
+
+    .sequence_delay_ms = 1,
+
+    .pos_pole_index = 0,
+    .neg_pole_index = 1,
+
+    .hv_pos_count = 3,
+    .hv_neg_count = 3,
+
+    .hv_delay_ms = 5,
+
+    .hv_pos_on_ms = 10,
+    .hv_pos_off_ms = 10,
+    .hv_neg_on_ms = 10,
+    .hv_neg_off_ms = 10,
+
+    .pulse_delay_ms = 1,
+
+    .lv_pos_count = 5,
+    .lv_neg_count = 5,
+
+    .lv_delay_ms = 10,
+
+    .lv_pos_on_ms = 20,
+    .lv_pos_off_ms = 20,
+    .lv_neg_on_ms = 20,
+    .lv_neg_off_ms = 20,
+};
+
 static H_Bridge_Sequence_t current_seq;
 
 
 void H_Bridge_Task_Init(void) {
-    is_h_bridge_enable = false;
-    V_Switch_Set_Mode(V_SWITCH_MODE_ALL_OFF);
-    H_Bridge_State = HB_TASK_INIT_STATE;
-}
 
-void H_Bridge_Add_Sequence(H_Bridge_Sequence_t new_seq) {
-    if (total_active_sequences < MAX_SEQUENCES) {
-        Sequence_List[total_active_sequences] = new_seq;
-        total_active_sequences++;
+    is_h_bridge_enable = false;
+
+    VS_Off();
+    H_Bridge_State = HB_TASK_INIT_STATE;
+
+
+    for (uint8_t i = 0; i < MAX_SEQUENCES; i++)
+    {
+        Sequence_List[i] = default_sequence;
     }
 }
 
-void H_Bridge_Clear_All_Sequences(void) {
-    total_active_sequences = 0;
-}
+/*
+Currently, DMA buffer count is not calculated for maximum usage
+Currnetly it is set at 3200
+Recalculated if needed!
 
+NOTE: DEADTIME currently having bug that delay for 200us instead of 100us!!!!
+NOTE: Timer period is 100us
+
+Ton and Tof must * 10 (1ms = 10 * 100us)
+Deadtime = 1 * 100us
+(Ton * 10) - 1: Ton in SALEA always Ton + 100us
+ HB_Pulse to add one type of pulse
+ HB Delay: ch1 and ch2 must be the one currently in use
+
+*/
 
 void H_Bridge_Task(void *) {
-    if(is_h_bridge_enable == false) {
-        V_Switch_Set_Mode(V_SWITCH_MODE_ALL_OFF);
+
+    if(is_h_bridge_enable == false)
+    {
         H_Bridge_State = HB_TASK_INIT_STATE;
-        current_HB_sequence = 0;
+        current_HB_sequence_index = 0;
+
+        VS_Off();
         SchedulerTaskDisable(H_BRIDGE_TASK);
+
         return;
     }
 
     switch (H_Bridge_State) {
         case HB_TASK_INIT_STATE: {
-            if (total_active_sequences > 0) {
-                current_HB_sequence = 0;
-                current_seq = Sequence_List[current_HB_sequence];
-                H_Bridge_Pulse_Process = HB_HV_POS_PULSE;
-                H_Bridge_State = HB_TASK_PULSING;
+            if (total_active_sequences <= 0) {
+                break;
             }
+            // Calculate BSRR for the first sequence
+            current_HB_sequence_index = 0;
+            VS_Clear_Sequence();
+            HB_Clear_Sequence();
+
+            for (current_HB_sequence_index = 0; current_HB_sequence_index < total_active_sequences; current_HB_sequence_index++)
+            {
+                current_seq = Sequence_List[current_HB_sequence_index];
+                uint32_t vs_hv_ontime_us = 0;
+                uint32_t vs_lv_ontime_us = 0;
+                uint32_t vs_deadtime_us = 1;
+
+                // Sequence delay
+                vs_hv_ontime_us += HB_Delay(current_seq.pos_pole_index, current_seq.neg_pole_index, (current_seq.sequence_delay_ms * 10) - 1);
+                // HV Pos
+                vs_hv_ontime_us += HB_Pulse(current_seq.pos_pole_index, current_seq.neg_pole_index, (current_seq.hv_pos_on_ms * 10) - 1, (current_seq.hv_pos_off_ms * 10) - 1, 1, current_seq.hv_pos_count);
+                // HV delay
+                vs_hv_ontime_us += HB_Delay(current_seq.pos_pole_index, current_seq.neg_pole_index, (current_seq.hv_delay_ms * 10) - 1);
+                // HV Neg
+                vs_hv_ontime_us += HB_Pulse(current_seq.neg_pole_index, current_seq.pos_pole_index, (current_seq.hv_neg_on_ms * 10) - 1, (current_seq.hv_neg_off_ms * 10) - 1, 1, current_seq.hv_neg_count);
+                vs_hv_ontime_us -= 1;
+                // Pulse delay
+                vs_lv_ontime_us += HB_Delay(current_seq.pos_pole_index, current_seq.neg_pole_index, (current_seq.pulse_delay_ms * 10) - 1);
+                // LV Pos
+                vs_lv_ontime_us += HB_Pulse(current_seq.pos_pole_index, current_seq.neg_pole_index, (current_seq.lv_pos_on_ms * 10) - 1, (current_seq.lv_pos_off_ms * 10) - 1, 1, current_seq.lv_pos_count);
+                // LV delay
+                vs_lv_ontime_us += HB_Delay(current_seq.pos_pole_index, current_seq.neg_pole_index, (current_seq.lv_delay_ms * 10) - 1);
+                // LV Neg
+                vs_lv_ontime_us += HB_Pulse(current_seq.neg_pole_index, current_seq.pos_pole_index, (current_seq.lv_neg_on_ms * 10) - 1, (current_seq.lv_neg_off_ms * 10) - 1, 1, current_seq.lv_neg_count);
+                vs_lv_ontime_us -= 1;  
+
+                VS_Pulse(vs_hv_ontime_us, vs_lv_ontime_us, vs_deadtime_us, current_HB_sequence_index);
+            }
+
+            VS_Start();
+            HB_Start();
+            
+            H_Bridge_State = HB_TASK_PULSING;
+
             break;
         }
         case HB_TASK_PULSING: {
+            if (HB_Is_Phase_Done() == true)
+            {
+                H_Bridge_State = HB_TASK_INIT_STATE;
 
-            if (H_Bridge_Pulse_Process == HB_PULSE_IDLE) {
-                current_HB_sequence++;
+//                VS_Clear_Sequence();
+//                HB_Clear_Sequence();
 
-                if (current_HB_sequence >= total_active_sequences) {
-                    current_HB_sequence = 0;
-                }
+                total_active_sequences = 0;
+                is_h_bridge_enable = false;
 
-                current_seq = Sequence_List[current_HB_sequence];
-                H_Bridge_Pulse_Process = HB_HV_POS_PULSE;
+                VS_Off();
+
+                break;
             }
-            break;
-        }
-        default:
-            break;
-    }
-}
-
-
-void H_Bridge_Pulse_Process_Task(void *) {
-    if(H_Bridge_State != HB_TASK_PULSING) {
-        return;
-    }
-
-    HBridge_Config_t hb_cfg;
-    uint16_t buff_len = 0;
-
-    switch(H_Bridge_Pulse_Process) {
-        case HB_HV_POS_PULSE: {
-            if(HB_Is_Phase_Done() == true) {
-                V_Switch_Set_Mode(V_SWITCH_MODE_HV_ON);
-
-                hb_cfg.Port = SYSTEM_POLES[current_seq.pos_pole_index].Port;
-                hb_cfg.Pos_HIN_Pin = SYSTEM_POLES[current_seq.pos_pole_index].HIN_Pin;
-                hb_cfg.Pos_LIN_Pin = SYSTEM_POLES[current_seq.pos_pole_index].LIN_Pin;
-                hb_cfg.Neg_HIN_Pin = SYSTEM_POLES[current_seq.neg_pole_index].HIN_Pin;
-                hb_cfg.Neg_LIN_Pin = SYSTEM_POLES[current_seq.neg_pole_index].LIN_Pin;
-                HB_Init(&hb_cfg);
-
-                buff_len = HB_Build_Pulse_Buff(current_seq.hv_pos_on_ms, current_seq.hv_pos_off_ms);
-                HB_Start_DMA_Sequence(buff_len, current_seq.hv_pos_count);
-
-                H_Bridge_Pulse_Process = HB_HV_DELAY;
-            }
-            break;
-        }
-        case HB_HV_DELAY: {
-            if(HB_Is_Phase_Done() == true) {
-                V_Switch_Set_Mode(V_SWITCH_MODE_ALL_OFF);
-                buff_len = HB_Build_Delay_Buff(current_seq.hv_delay_ms);
-                HB_Start_DMA_Sequence(buff_len, 1);
-                H_Bridge_Pulse_Process = HB_HV_NEG_PULSE;
-            }
-            break;
-        }
-        case HB_HV_NEG_PULSE: {
-            if(HB_Is_Phase_Done() == true) {
-                V_Switch_Set_Mode(V_SWITCH_MODE_HV_ON);
-
-                hb_cfg.Port = SYSTEM_POLES[current_seq.pos_pole_index].Port;
-                hb_cfg.Pos_HIN_Pin = SYSTEM_POLES[current_seq.neg_pole_index].HIN_Pin;
-                hb_cfg.Pos_LIN_Pin = SYSTEM_POLES[current_seq.neg_pole_index].LIN_Pin;
-                hb_cfg.Neg_HIN_Pin = SYSTEM_POLES[current_seq.pos_pole_index].HIN_Pin;
-                hb_cfg.Neg_LIN_Pin = SYSTEM_POLES[current_seq.pos_pole_index].LIN_Pin;
-                HB_Init(&hb_cfg);
-
-                buff_len = HB_Build_Pulse_Buff(current_seq.hv_neg_on_ms, current_seq.hv_neg_off_ms);
-                HB_Start_DMA_Sequence(buff_len, current_seq.hv_neg_count);
-
-                H_Bridge_Pulse_Process = HB_DELAY;
-            }
-            break;
-        }
-        case HB_DELAY: {
-            if(HB_Is_Phase_Done() == true) {
-                V_Switch_Set_Mode(V_SWITCH_MODE_ALL_OFF);
-                buff_len = HB_Build_Delay_Buff(current_seq.pulse_delay_ms);
-                HB_Start_DMA_Sequence(buff_len, 1);
-
-                H_Bridge_Pulse_Process = HB_LV_POS_PULSE;
-            }
-            break;
-        }
-        case HB_LV_POS_PULSE: {
-            if(HB_Is_Phase_Done() == true) {
-                V_Switch_Set_Mode(V_SWITCH_MODE_LV_ON);
-
-                hb_cfg.Port = SYSTEM_POLES[current_seq.pos_pole_index].Port;
-                hb_cfg.Pos_HIN_Pin = SYSTEM_POLES[current_seq.pos_pole_index].HIN_Pin;
-                hb_cfg.Pos_LIN_Pin = SYSTEM_POLES[current_seq.pos_pole_index].LIN_Pin;
-                hb_cfg.Neg_HIN_Pin = SYSTEM_POLES[current_seq.neg_pole_index].HIN_Pin;
-                hb_cfg.Neg_LIN_Pin = SYSTEM_POLES[current_seq.neg_pole_index].LIN_Pin;
-                HB_Init(&hb_cfg);
-
-                buff_len = HB_Build_Pulse_Buff(current_seq.lv_pos_on_ms, current_seq.lv_pos_off_ms);
-                HB_Start_DMA_Sequence(buff_len, current_seq.lv_pos_count);
-
-                H_Bridge_Pulse_Process = HB_LV_DELAY;
-            }
-            break;
-        }
-        case HB_LV_DELAY: {
-            if(HB_Is_Phase_Done() == true) {
-                V_Switch_Set_Mode(V_SWITCH_MODE_ALL_OFF);
-                buff_len = HB_Build_Delay_Buff(current_seq.lv_delay_ms);
-                HB_Start_DMA_Sequence(buff_len, 1);
-
-                H_Bridge_Pulse_Process = HB_LV_NEG_PULSE;
-            }
-            break;
-        }
-        case HB_LV_NEG_PULSE: {
-            if(HB_Is_Phase_Done() == true) {
-                V_Switch_Set_Mode(V_SWITCH_MODE_LV_ON);
-
-                hb_cfg.Port = SYSTEM_POLES[current_seq.pos_pole_index].Port;
-                hb_cfg.Pos_HIN_Pin = SYSTEM_POLES[current_seq.neg_pole_index].HIN_Pin;
-                hb_cfg.Pos_LIN_Pin = SYSTEM_POLES[current_seq.neg_pole_index].LIN_Pin;
-                hb_cfg.Neg_HIN_Pin = SYSTEM_POLES[current_seq.pos_pole_index].HIN_Pin;
-                hb_cfg.Neg_LIN_Pin = SYSTEM_POLES[current_seq.pos_pole_index].LIN_Pin;
-                HB_Init(&hb_cfg);
-
-                buff_len = HB_Build_Pulse_Buff(current_seq.lv_neg_on_ms, current_seq.lv_neg_off_ms);
-                HB_Start_DMA_Sequence(buff_len, current_seq.lv_neg_count);
-
-                H_Bridge_Pulse_Process = HB_SEQUENCE_DELAY;
-            }
-            break;
-        }
-        case HB_SEQUENCE_DELAY: {
-            if(HB_Is_Phase_Done() == true) {
-                V_Switch_Set_Mode(V_SWITCH_MODE_ALL_OFF);
-                buff_len = HB_Build_Delay_Buff(current_seq.sequence_delay_ms);
-                HB_Start_DMA_Sequence(buff_len, 1);
-
-                H_Bridge_Pulse_Process = HB_PULSE_IDLE;
-            }
-            break;
-        }
-        case HB_PULSE_IDLE: {
-
-            break;
         }
         default:
             break;

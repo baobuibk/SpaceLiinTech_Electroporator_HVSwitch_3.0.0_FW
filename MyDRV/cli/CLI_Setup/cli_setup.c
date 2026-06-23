@@ -4,36 +4,25 @@
  *  Created on: Apr 1, 2025
  *      Author: HTSANG
  */
-#include <cli/CLI_Setup/cli_setup.h>
+
+#define EMBEDDED_CLI_IMPL
+#include "cli/CLI_Src/embedded_cli.h"
+#include "cli/CLI_Setup/cli_setup.h"
+#include "cli_command.h"
+#include "uart_driver.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
-
-
-#include "../../uart/uart_driver.h"
-
-#define EMBEDDED_CLI_IMPL
-#include <cli/CLI_Src/embedded_cli.h>
-
-
-
-
 
 
 
 static void writeCharToUart_Common(EmbeddedCli *embeddedCli, char c) {
 
     UART_Driver_t* uart_driver = (UART_Driver_t*)embeddedCli->appContext;
-
-//    if (uart_driver != NULL && uart_driver->handle != NULL) {
-//        LL_USART_TransmitData8(uart_driver->handle, (uint8_t)c);
-//        while (!LL_USART_IsActiveFlag_TXE(uart_driver->handle));
-//    }
-    uint8_t c_to_send = c;
+//    uint8_t c_to_send = c;
     UART_Driver_Write(uart_driver, (uint8_t)c);
 }
-//Call before FREERTOS be initialized
-//Call After UART Driver Init (or Peripheral use CLI)
 
 
 /**
@@ -74,3 +63,5 @@ EmbeddedCli* SystemCLI_Init(UART_Driver_t* p_uart, CLI_UINT* cli_buffer, uint16_
 
     return new_cli;
 }
+
+
