@@ -64,6 +64,12 @@ default.size.stdout \
 OBJDUMP_LIST += \
 HVP_FIRM_V.list \
 
+OBJCOPY_HEX += \
+HVP_FIRM_V.hex \
+
+OBJCOPY_BIN += \
+HVP_FIRM_V.bin \
+
 
 # All Target
 all: main-build
@@ -87,12 +93,22 @@ HVP_FIRM_V.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
+HVP_FIRM_V.hex: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objcopy  -O ihex $(EXECUTABLES) "HVP_FIRM_V.hex"
+	@echo 'Finished building: $@'
+	@echo ' '
+
+HVP_FIRM_V.bin: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objcopy  -O binary $(EXECUTABLES) "HVP_FIRM_V.bin"
+	@echo 'Finished building: $@'
+	@echo ' '
+
 # Other Targets
 clean:
-	-$(RM) HVP_FIRM_V.elf HVP_FIRM_V.list HVP_FIRM_V.map default.size.stdout
+	-$(RM) HVP_FIRM_V.bin HVP_FIRM_V.elf HVP_FIRM_V.hex HVP_FIRM_V.list HVP_FIRM_V.map default.size.stdout
 	-@echo ' '
 
-secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)
+secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST) $(OBJCOPY_HEX) $(OBJCOPY_BIN)
 
 fail-specified-linker-script-missing:
 	@echo 'Error: Cannot find the specified linker script. Check the linker settings in the build configuration.'

@@ -52,7 +52,7 @@ void FSP_Line_Task_Init(void)
 		memset((void*) FSP_line.p_buffer, 0, sizeof(FSP_line.p_buffer));
 	}
 
-	fsp_init(FSP_ADR_GPC);
+	fsp_init(FSP_ADR_GPP);
 
 }
 

@@ -1,0 +1,3 @@
+../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_tim.h:1127:22:LL_TIM_DisableCounter	1
+../App/H_bridge_task/h_bridge_task.c:58:6:H_Bridge_Task_Init	2
+../App/H_bridge_task/h_bridge_task.c:88:6:H_Bridge_Task	7

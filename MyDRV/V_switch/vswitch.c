@@ -9,10 +9,7 @@
 #include "main.h"
 
 
-__STATIC_INLINE void VS_Set_Duty(PWM_TypeDef *PWMx, uint32_t _Duty, bool apply_now);
-__STATIC_INLINE void VS_Set_OC(PWM_TypeDef *PWMx, uint32_t _OC, bool apply_now);
-__STATIC_INLINE void VS_Set_Freq(PWM_TypeDef *PWMx, uint32_t _Freq, bool apply_now);
-__STATIC_INLINE void VS_Set_ARR(PWM_TypeDef *PWMx, uint32_t _ARR, bool apply_now);
+
 
 uint32_t arr_channel_buf[MAX_VS_EVENTS];
 uint32_t gpio_channel_buf[MAX_VS_EVENTS];
@@ -191,8 +188,6 @@ void VS_Start(void)
     DMA_VS_GPIO_Start(vs_event_count);
     DMA_VS_ARR_Start(vs_event_count);
 
-
-
     LL_TIM_SetCounter(TIM8, 0);
     LL_TIM_DisableARRPreload(TIM8);
 
@@ -217,11 +212,8 @@ void DMA2_Stream1_IRQHandler(void)
         LL_TIM_DisableCounter(TIM8);
 
         LL_TIM_DisableDMAReq_UPDATE(TIM8);
-//        LL_TIM_DisableDMAReq_CC4(TIM8);
 
         LL_DMA_DisableStream(DMA2,LL_DMA_STREAM_1);
-
-//        LL_DMA_DisableStream( DMA2,LL_DMA_STREAM_7);
 
         is_vs_sequence_done = true;
     }
@@ -235,10 +227,7 @@ void DMA2_Stream7_IRQHandler(void)
 
         LL_TIM_DisableCounter(TIM8);
 
-//        LL_TIM_DisableDMAReq_UPDATE(TIM8);
         LL_TIM_DisableDMAReq_CC4(TIM8);
-
-//        LL_DMA_DisableStream(DMA2,LL_DMA_STREAM_1);
 
         LL_DMA_DisableStream( DMA2,LL_DMA_STREAM_7);
 

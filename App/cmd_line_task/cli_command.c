@@ -8,9 +8,12 @@
 #include "cli/CLI_Src/embedded_cli.h"
 #include "cli/CLI_Setup/cli_setup.h"
 #include "cli_command.h"
+
 #include "fsp_line_task.h"
 #include "fsp_frame.h"
+#include "fsp.h"
 
+#include "uart_driver.h"
 #include "board.h"
 #include "app.h"
 
@@ -33,18 +36,6 @@ static uint8_t ChannelMapping[8] = {0, 1, 2, 3, 4, 5, 6, 7};
  *************************************************/
 uint8_t CMD_sequence_index = 0;
 
-uint16_t hv_set_volt = 0;
-uint16_t lv_set_volt = 0;
-
-uint16_t hv_raw_volt = 0;
-uint16_t lv_raw_volt = 0;
-
-bool hv_is_charging = false;
-bool lv_is_charging = false;
-
-bool hv_is_discharging = false;
-bool lv_is_discharging = false;
-
 /*************************************************
  *                Command Define                 *
  *************************************************/
@@ -61,10 +52,10 @@ static void CMD_SET_CAP_VOLT_LV (EmbeddedCli *cli, char *args, void *context);
 static void CMD_SET_CAP_CONTROL (EmbeddedCli *cli, char *args, void *context);
 static void CMD_SET_CAP_RELEASE (EmbeddedCli *cli, char *args, void *context);
 
-//static void CMD_GET_CAP_VOLT (EmbeddedCli *cli, char *args, void *context);
-//static void CMD_GET_CAP_CONTROL (EmbeddedCli *cli, char *args, void *context);
-//static void	CMD_GET_CAP_RELEASE (EmbeddedCli *cli, char *args, void *context);
-//static void CMD_GET_CAP_ALL (EmbeddedCli *cli, char *args, void *context);
+static void CMD_GET_CAP_VOLT (EmbeddedCli *cli, char *args, void *context);
+static void CMD_GET_CAP_CONTROL (EmbeddedCli *cli, char *args, void *context);
+static void	CMD_GET_CAP_RELEASE (EmbeddedCli *cli, char *args, void *context);
+static void CMD_GET_CAP_ALL (EmbeddedCli *cli, char *args, void *context);
 
 static void CMD_MEASURE_VOLT (EmbeddedCli *cli, char *args, void *context);
 
@@ -100,11 +91,10 @@ static const CliCommandBinding cliStaticBindings_internal[] = {
 	{ NULL,	"SET_CAP_CONTROL", 			"format: SET_CAP_CONTROL [N] [S]",					true,NULL,CMD_SET_CAP_CONTROL},
 	{ NULL,	"SET_CAP_RELEASE", 			"format: SET_CAP_RELEASE [N] [S]",					true,NULL,CMD_SET_CAP_RELEASE},
 
-//	{ NULL,	"GET_CAP_VOLT", 			"format: GET_CAP_VOLT ",							false,NULL,CMD_GET_CAP_VOLT},
-//	{ NULL,	"GET_CAP_RELEASE", 			"format: GET_CAP_RELEASE",							false,NULL,CMD_GET_CAP_RELEASE},
-//	{ NULL,	"GET_CAP_CONTROL", 			"format: GET_CAP_CONTROL",							false,NULL,CMD_GET_CAP_CONTROL},
-//	{ NULL,	"GET_CAP_ALL", 				"format: GET_CAP_ALL",								false,NULL,CMD_GET_CAP_ALL},
-
+	{ NULL,	"GET_CAP_VOLT", 			"format: GET_CAP_VOLT ",							false,NULL,CMD_GET_CAP_VOLT},
+	{ NULL,	"GET_CAP_RELEASE", 			"format: GET_CAP_RELEASE",							false,NULL,CMD_GET_CAP_RELEASE},
+	{ NULL,	"GET_CAP_CONTROL", 			"format: GET_CAP_CONTROL",							false,NULL,CMD_GET_CAP_CONTROL},
+	{ NULL,	"GET_CAP_ALL", 				"format: GET_CAP_ALL",								false,NULL,CMD_GET_CAP_ALL},
 
 	{ NULL,	"SET_SEQUENCE_INDEX", 		"format: SET_SEQUENCE_INDEX [N]",				true,	NULL,CMD_SET_SEQUENCE_INDEX},
 	{ NULL,	"SET_SEQUENCE_DELETE", 		"format: SET_SEQUENCE_DELETE",					false,	NULL,CMD_SET_SEQUENCE_DELETE},
@@ -119,12 +109,14 @@ static const CliCommandBinding cliStaticBindings_internal[] = {
 	{ NULL,	"SET_PULSE_LV_POS", 		"format: SET_PULSE_LV_POS [N] [S]",				true,	NULL,CMD_SET_PULSE_LV_POS},
 	{ NULL,	"SET_PULSE_LV_NEG", 		"format: SET_PULSE_LV_NEG [N] [S]",				true,	NULL,CMD_SET_PULSE_LV_NEG},
 	{ NULL,	"SET_PULSE_CONTROL", 		"format: SET_PULSE_CONTROL [N]",				true,	NULL,CMD_SET_PULSE_CONTROL},
-
 };
 
 /*************************************************
  *             Command List Function             *
  *************************************************/
+
+/*----------------------CMD FOR CAP CONTROL--------------------------------*/
+
 static void	CMD_SET_CAP_VOLT_ALL(EmbeddedCli *cli, char *args, void *context){
 
 	uint8_t argc = embeddedCliGetTokenCount(args);
@@ -137,9 +129,6 @@ static void	CMD_SET_CAP_VOLT_ALL(EmbeddedCli *cli, char *args, void *context){
 		embeddedCliPrint(cli,"\n\r> CMDLINE_TOO_MANY_ARGS\n\r");
 		return;
 	}
-
-	ps_FSP_TX -> CMD = FSP_CMD_GET_CAP_CONTROL;
-	fsp_print(1);
 
 	uint16_t receive_argm[2];
 
@@ -155,35 +144,19 @@ static void	CMD_SET_CAP_VOLT_ALL(EmbeddedCli *cli, char *args, void *context){
 		return;
 	}
 
-	uint8_t is_return = 0;
-
-	if (hv_is_charging == true)
-	{
-		embeddedCliPrint(cli, "\n\r> HV CAP IS CHARGING, PLEASE DISABLE CHARGING BEFORE SET NEW VOLT");
-		is_return = 1;
-	}
-
-	if (lv_is_charging == true)
-	{
-		embeddedCliPrint(cli, "\n\r> LV CAP IS CHARGING, PLEASE DISABLE CHARGING BEFORE SET NEW VOLT");
-		is_return = 1;
-	}
-
-	if (is_return == 1) return;
-
 	ps_FSP_TX -> CMD = FSP_CMD_SET_CAP_VOLT_ALL;
 	ps_FSP_TX -> Payload.set_volt_all.HV_High = (uint8_t) ((receive_argm[0]>>8) & 0xFF);
 	ps_FSP_TX -> Payload.set_volt_all.HV_Low = (uint8_t) (receive_argm[0] & 0xFF);
 	ps_FSP_TX -> Payload.set_volt_all.LV_High = (uint8_t) ((receive_argm[1]>>8) & 0xFF);;
 	ps_FSP_TX -> Payload.set_volt_all.LV_Low = (uint8_t) (receive_argm[1] & 0xFF);
 
+	fsp_print(5);
+
 	embeddedCliPrint(cli,"\n\r> CMDLINE_OK");
 	return;
 }
-static void	CMD_SET_CAP_VOLT_HV (EmbeddedCli *cli, char *args, void *context){
 
-	ps_FSP_TX -> CMD = FSP_CMD_GET_CAP_CONTROL;
-	fsp_print(1);
+static void	CMD_SET_CAP_VOLT_HV (EmbeddedCli *cli, char *args, void *context){
 
 	uint8_t argc = embeddedCliGetTokenCount(args);
 	if(argc < 1) {
@@ -202,12 +175,6 @@ static void	CMD_SET_CAP_VOLT_HV (EmbeddedCli *cli, char *args, void *context){
 		return;
 	}
 
-	if (hv_is_charging == true)
-	{
-		embeddedCliPrint(cli, "\n\r> HV CAP IS CHARGING, PLEASE DISABLE CHARGING BEFORE SET NEW VOLT");
-		return ;
-	}
-
 	ps_FSP_TX -> CMD = FSP_CMD_SET_CAP_VOLT_HV;
 	ps_FSP_TX -> Payload.set_volt_hv.HV_High = (uint8_t) ((receive_argm>>8) & 0xFF);
 	ps_FSP_TX -> Payload.set_volt_hv.HV_Low = (uint8_t) (receive_argm & 0xFF);
@@ -218,10 +185,8 @@ static void	CMD_SET_CAP_VOLT_HV (EmbeddedCli *cli, char *args, void *context){
 
 	return;
 }
-static void CMD_SET_CAP_VOLT_LV (EmbeddedCli *cli, char *args, void *context){
 
-	ps_FSP_TX -> CMD = FSP_CMD_GET_CAP_CONTROL;
-	fsp_print(1);
+static void CMD_SET_CAP_VOLT_LV (EmbeddedCli *cli, char *args, void *context){
 
 	uint8_t argc = embeddedCliGetTokenCount(args);
 	if(argc < 1) {
@@ -240,12 +205,6 @@ static void CMD_SET_CAP_VOLT_LV (EmbeddedCli *cli, char *args, void *context){
 		return;
 	}
 
-	if (lv_is_charging== true)
-	{
-		embeddedCliPrint(cli,"\n\r> LV CAP IS CHARGING, PLEASE DISABLE CHARGING BEFORE SET NEW VOLT");
-		return ;
-	}
-
 	ps_FSP_TX -> CMD = FSP_CMD_SET_CAP_VOLT_LV;
 	ps_FSP_TX -> Payload.set_volt_lv.LV_High = (uint8_t) ((receive_argm>>8) & 0xFF);
 	ps_FSP_TX -> Payload.set_volt_lv.LV_Low = (uint8_t) (receive_argm & 0xFF);
@@ -256,13 +215,8 @@ static void CMD_SET_CAP_VOLT_LV (EmbeddedCli *cli, char *args, void *context){
 
 	return;
 }
+
 static void CMD_SET_CAP_CONTROL (EmbeddedCli *cli, char *args, void *context){
-
-	ps_FSP_TX -> CMD = FSP_CMD_MEASURE_VOLT;
-	fsp_print(1);
-
-	ps_FSP_TX -> CMD = FSP_CMD_GET_CAP_VOLT;
-	fsp_print(1);
 
 	uint8_t argc = embeddedCliGetTokenCount(args);
 	if(argc < 2) {
@@ -287,31 +241,11 @@ static void CMD_SET_CAP_CONTROL (EmbeddedCli *cli, char *args, void *context){
 		return;
 	}
 
-	uint8_t  is_return = 0;
-
-	if (receive_argm[0] == 1)
-	{
-		if (hv_set_volt < hv_raw_volt)
-		{
-			embeddedCliPrint(cli,"\n\r> CURRENT HV VOLT IS HIGHER THAN YOUR SET VOLT, PLEASE DISCHARGE BEFORE CHARGING");
-			is_return = 1;
-		}
-	}
-
-	if (receive_argm[1] == 1)
-	{
-		if (lv_set_volt < lv_raw_volt)
-		{
-			embeddedCliPrint(cli,"CURRENT LV VOLT IS HIGHER THAN YOUR SET VOLT, PLEASE DISCHARGE BEFORE CHARGING\n\r");
-			is_return = 1;
-		}
-	}
-
-	if (is_return == 1) return ;
-
 	ps_FSP_TX -> CMD = FSP_CMD_SET_CAP_CONTROL;
-	ps_FSP_TX -> Payload.set_charge.HV_cmd_charge = true;
-	ps_FSP_TX -> Payload.set_charge.LV_cmd_charge = true;
+	ps_FSP_TX -> Payload.set_charge.HV_cmd_charge = receive_argm[0];
+	ps_FSP_TX -> Payload.set_charge.LV_cmd_charge = receive_argm[1];
+
+	fsp_print(3);
 
 	embeddedCliPrint(cli,"\n\r> CMDLINE_OK");
 
@@ -345,136 +279,80 @@ static void CMD_SET_CAP_RELEASE (EmbeddedCli *cli, char *args, void *context){
 	}
 
 	ps_FSP_TX -> CMD = FSP_CMD_SET_CAP_RELEASE;
-	ps_FSP_TX -> Payload.set_discharge.HV_cmd_discharge = true;
-	ps_FSP_TX -> Payload.set_discharge.LV_cmd_discharge = true;
+	ps_FSP_TX -> Payload.set_discharge.HV_cmd_discharge = receive_argm[0];
+	ps_FSP_TX -> Payload.set_discharge.LV_cmd_discharge = receive_argm[1];
 
 	fsp_print(3);
 	embeddedCliPrint(cli,"CMDLINE_OK\n\r");
 	return ;
 
 }
-//static void CMD_GET_CAP_VOLT (EmbeddedCli *cli, char *args, void *context){
-//
-//	int argc = embeddedCliGetTokenCount(args);
-//	if(argc != 0){
-//		embeddedCliPrint(cli,"\n\r> CMDLINE_TOO_MANY_ARGS");
-//		return;
-//	}
-//
-//	ps_FSP_TX -> CMD = FSP_CMD_GET_CAP_VOLT;
-//
-//	char msg[64];
-//	sprintf(msg, "\n\r> HV CAP IS SET AT: %dV, LV CAP IS SET AT: %dV", hv_cap_set_voltage, lv_cap_set_voltage);
-//	embeddedCliPrint(cli,msg);
-//
-//}
-//static void CMD_GET_CAP_CONTROL (EmbeddedCli *cli, char *args, void *context){
-//
-//	int argc = embeddedCliGetTokenCount(args);
-//	if(argc != 0){
-//		embeddedCliPrint(cli,"\n\r> CMDLINE_TOO_MANY_ARGS");
-//		return;
-//	}
-//	if (Cap_Get_is_Charge(CAP_PRF_HV) == true)
-//	{
-//		embeddedCliPrint(cli, "\n\r> HV CAP IS CHARGING");
-//	}
-//	else
-//	{
-//		embeddedCliPrint(cli, "\n\r> HV CAP IS NOT CHARGING");
-//	}
-//
-//	if (Cap_Get_is_Charge(CAP_PRF_LV) == true)
-//	{
-//		embeddedCliPrint(cli,"\n\r> LV CAP IS CHARGING");
-//	}
-//	else
-//	{
-//		embeddedCliPrint(cli, "\n\r> LV CAP IS NOT CHARGING");
-//	}
-//
-//}
-//static void	CMD_GET_CAP_RELEASE (EmbeddedCli *cli, char *args, void *context){
-//
-//	int argc = embeddedCliGetTokenCount(args);
-//	if(argc != 0){
-//		embeddedCliPrint(cli,"\n\r> CMDLINE_TOO_MANY_ARGS");
-//		return;
-//	}
-//
-//	if (Cap_Get_is_Discharge(CAP_PRF_HV) == true)
-//	{
-//		embeddedCliPrint(cli, "\n\r> HV CAP IS DISCHARGING");
-//	}
-//	else
-//	{
-//		embeddedCliPrint(cli, "\n\r> HV CAP IS NOT DISCHARGING");
-//	}
-//
-//	if (Cap_Get_is_Discharge(CAP_PRF_LV) == true)
-//	{
-//		embeddedCliPrint(cli, "\n\r> LV CAP IS DISCHARGING");
-//	}
-//	else
-//	{
-//		embeddedCliPrint(cli, "\n\r> LV CAP IS NOT DISCHARGING");
-//	}
-//
-//}
-//static void CMD_GET_CAP_ALL (EmbeddedCli *cli, char *args, void *context){
-//	char msg[100];
-//	int argc = embeddedCliGetTokenCount(args);
-//
-//	if(argc != 0){
-//		embeddedCliPrint(cli,"\n\r> CMDLINE_TOO_MANY_ARGS");
-//		return;
-//	}
-//
-//	uint16_t hv_cap_set_voltage, lv_cap_set_voltage;
-//
-//	hv_cap_set_voltage = Cap_Get_Set_Volt(CAP_PRF_HV);
-//	lv_cap_set_voltage = Cap_Get_Set_Volt(CAP_PRF_LV);
-//
-//	sprintf(msg, "\n\r> HV CAP IS SET AT: %dV, LV CAP IS SET AT: %dV", hv_cap_set_voltage, lv_cap_set_voltage);
-//	embeddedCliPrint(cli,msg);
-//
-//	if (Cap_Get_is_Charge(CAP_PRF_HV) == true)
-//	{
-//		embeddedCliPrint(cli, "\n\r> HV CAP IS CHARGING");
-//	}
-//	else
-//	{
-//		embeddedCliPrint(cli, "\n\r> HV CAP IS NOT CHARGING");
-//	}
-//
-//	if (Cap_Get_is_Charge(CAP_PRF_LV) == true)
-//	{
-//		embeddedCliPrint(cli,"\n\r> LV CAP IS CHARGING");
-//	}
-//	else
-//	{
-//		embeddedCliPrint(cli, "\n\r> LV CAP IS NOT CHARGING");
-//	}
-//
-//	if (Cap_Get_is_Discharge(CAP_PRF_HV) == true)
-//	{
-//		embeddedCliPrint(cli, "\n\r> HV CAP IS DISCHARGING");
-//	}
-//	else
-//	{
-//		embeddedCliPrint(cli, "\n\r> HV CAP IS NOT DISCHARGING");
-//	}
-//
-//	if (Cap_Get_is_Discharge(CAP_PRF_LV) == true)
-//	{
-//		embeddedCliPrint(cli, "\n\r> LV CAP IS DISCHARGING");
-//	}
-//	else
-//	{
-//		embeddedCliPrint(cli, "\n\r> LV CAP IS NOT DISCHARGING");
-//	}
-//
-//}
+
+
+static void CMD_GET_CAP_VOLT (EmbeddedCli *cli, char *args, void *context){
+
+	int argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"\n\r> CMDLINE_TOO_MANY_ARGS");
+		return;
+	}
+
+	ps_FSP_TX -> CMD = FSP_CMD_GET_CAP_VOLT;
+	fsp_print(1);
+
+	embeddedCliPrint(cli,"CMDLINE_OK\n\r");
+
+	return;         
+}
+
+static void CMD_GET_CAP_CONTROL (EmbeddedCli *cli, char *args, void *context){
+
+	int argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"\n\r> CMDLINE_TOO_MANY_ARGS");
+		return;
+	}
+
+	ps_FSP_TX -> CMD = FSP_CMD_GET_CAP_CONTROL;
+	fsp_print(1);
+	
+	embeddedCliPrint(cli,"CMDLINE_OK\n\r");
+
+	return;
+}
+
+static void	CMD_GET_CAP_RELEASE (EmbeddedCli *cli, char *args, void *context){
+
+	int argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"\n\r> CMDLINE_TOO_MANY_ARGS");
+		return;
+	}
+
+	ps_FSP_TX -> CMD = FSP_CMD_GET_CAP_RELEASE;
+	fsp_print(1);
+	
+	embeddedCliPrint(cli,"CMDLINE_OK\n\r");
+
+	return;
+}
+
+static void CMD_GET_CAP_ALL (EmbeddedCli *cli, char *args, void *context){
+
+	int argc = embeddedCliGetTokenCount(args);
+
+	if(argc != 0){
+		embeddedCliPrint(cli,"\n\r> CMDLINE_TOO_MANY_ARGS");
+		return;
+	}
+
+	ps_FSP_TX -> CMD = FSP_CMD_GET_CAP_ALL;
+	fsp_print(1);
+	
+	embeddedCliPrint(cli,"CMDLINE_OK\n\r");
+
+	return;
+}
 
 static void CMD_MEASURE_VOLT (EmbeddedCli *cli, char *args, void *context){
 
@@ -486,22 +364,15 @@ static void CMD_MEASURE_VOLT (EmbeddedCli *cli, char *args, void *context){
 	}
 
 	ps_FSP_TX -> CMD = FSP_CMD_MEASURE_VOLT;
+	fsp_print(1);
+	
+	embeddedCliPrint(cli,"CMDLINE_OK\n\r");
 
-
+	return;
 }
 
 
-static void CMD_ClearCLI(EmbeddedCli *cli, char *args, void *context) {
-    char buffer[10];
-    snprintf(buffer, sizeof(buffer), "\33[2J");
-    embeddedCliPrint(cli, buffer);
-}
-
-static void CMD_Reset(EmbeddedCli *cli, char *args, void *context) {
-	NVIC_SystemReset();
-    embeddedCliPrint(cli, "");
-}
-
+/*----------------------CMD FOR H BRIDGE CONTROL-----------------------------*/
 static void	CMD_SET_SEQUENCE_INDEX(EmbeddedCli *cli, char *args, void *context){
 
 	int argc = embeddedCliGetTokenCount(args);
@@ -834,7 +705,7 @@ static void	CMD_SET_PULSE_CONTROL(EmbeddedCli *cli, char *args, void *context){
 	if (receive_argm != 1)
 		return;
 
-	is_h_bridge_enable = (bool*) receive_argm;
+	is_h_bridge_enable = receive_argm;
 	SchedulerTaskEnable(H_BRIDGE_TASK, 1);
 
 	return;
@@ -854,12 +725,23 @@ static void	CMD_SET_PULSE_CONTROL(EmbeddedCli *cli, char *args, void *context){
 /*************************************************
  *                Getter - Helper                *
  *************************************************/
+static void CMD_ClearCLI(EmbeddedCli *cli, char *args, void *context) {
+    char buffer[10];
+    snprintf(buffer, sizeof(buffer), "\33[2J");
+    embeddedCliPrint(cli, buffer);
+}
+
+static void CMD_Reset(EmbeddedCli *cli, char *args, void *context) {
+	NVIC_SystemReset();
+    embeddedCliPrint(cli, "");
+}
+
 
 static void fsp_print(uint8_t packet_length)
 {
 	s_FSP_TX_Packet.sod 		= FSP_PKT_SOD;
 	s_FSP_TX_Packet.src_adr 	= fsp_my_adr;
-	s_FSP_TX_Packet.dst_adr 	= FSP_ADR_GPP;
+	s_FSP_TX_Packet.dst_adr 	= FSP_ADR_GPC;
 	s_FSP_TX_Packet.length 		= packet_length;
 	s_FSP_TX_Packet.type 		= FSP_PKT_TYPE_CMD_W_DATA;
 	s_FSP_TX_Packet.eof 		= FSP_PKT_EOF;
@@ -869,7 +751,7 @@ static void fsp_print(uint8_t packet_length)
 	uint8_t frame_len;
 	fsp_encode(&s_FSP_TX_Packet, encoded_frame, &frame_len);
 
-//	UART_Driver_SendFSP(&GPC_UART, (char*)encoded_frame , frame_len);
+	UART_Driver_SendFSP(&GPC_UART, (char*)encoded_frame , frame_len);
 }
 
 const CliCommandBinding *getCliStaticBindings(void) {

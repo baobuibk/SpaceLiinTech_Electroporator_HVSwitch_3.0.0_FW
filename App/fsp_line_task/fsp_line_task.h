@@ -13,7 +13,7 @@
 #include "fsp.h"
 #include "fsp_frame.h"
 
-extern UART_Driver_t 		GPP_UART;
+extern UART_Driver_t 		GPC_UART;
 
 extern fsp_packet_t		    s_FSP_RX_Packet;
 extern fsp_packet_t		    s_FSP_TX_Packet;

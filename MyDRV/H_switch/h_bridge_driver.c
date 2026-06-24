@@ -9,7 +9,8 @@
 uint32_t arr_buf[MAX_EVENTS];
 uint32_t gpio_buf[MAX_EVENTS];
 
-static volatile bool is_sequence_done = false;
+static volatile bool is_sequence_arr_done = false;
+static volatile bool is_sequence_bsrr_done = false;
 
 typedef struct {
     GPIO_TypeDef* Port;
@@ -123,7 +124,7 @@ void DMA_ARR_Start(uint32_t len)
 }
 
 bool HB_Is_Phase_Done(void) {
-    return is_sequence_done;
+    return is_sequence_arr_done && is_sequence_bsrr_done;
 }
 
 void HB_Clear_Sequence(void) {
@@ -135,7 +136,9 @@ void HB_Clear_Sequence(void) {
 
 void HB_Start(void)
 {
-    is_sequence_done = false;
+    is_sequence_arr_done = false;
+    is_sequence_bsrr_done = false;
+
 
     DMA_GPIO_Start(event_count);
 
@@ -161,7 +164,7 @@ void DMA2_Stream5_IRQHandler(void)
     {
         LL_DMA_ClearFlag_TC5(DMA2);
 
-        LL_TIM_DisableCounter(TIM1);
+//        LL_TIM_DisableCounter(TIM1);
 
         LL_TIM_DisableDMAReq_UPDATE(TIM1);
 //        LL_TIM_DisableDMAReq_CC4(TIM1);
@@ -170,7 +173,7 @@ void DMA2_Stream5_IRQHandler(void)
 
 //        LL_DMA_DisableStream( DMA2,LL_DMA_STREAM_4);
 
-        is_sequence_done = true;
+        is_sequence_bsrr_done = true;
     }
 }
 
@@ -180,7 +183,7 @@ void DMA2_Stream4_IRQHandler(void)
     {
         LL_DMA_ClearFlag_TC4(DMA2);
 
-        LL_TIM_DisableCounter(TIM1);
+//        LL_TIM_DisableCounter(TIM1);
 
 //        LL_TIM_DisableDMAReq_UPDATE(TIM1);
         LL_TIM_DisableDMAReq_CC4(TIM1);
@@ -189,7 +192,7 @@ void DMA2_Stream4_IRQHandler(void)
 
         LL_DMA_DisableStream( DMA2,LL_DMA_STREAM_4);
 
-        is_sequence_done = true;
+        is_sequence_arr_done = true;
     }
 }
 
