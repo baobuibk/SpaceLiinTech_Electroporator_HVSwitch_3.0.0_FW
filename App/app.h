@@ -30,13 +30,15 @@
 #include "cli_command.h"
 #include "h_bridge_driver.h"
 #include "v_switch_driver.h"
+#include "fsp.h"
+#include "fsp_frame.h"
 
 // USER DIVICE //
 
 // INCLUDE TASK //
 #include "xbee_cmd_task.h"
 #include "h_bridge_task.h"
-
+#include "fsp_line_task.h"
 
 
 typedef enum

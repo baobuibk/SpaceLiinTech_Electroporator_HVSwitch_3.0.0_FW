@@ -92,7 +92,7 @@ void H_Bridge_Task(void *) {
         H_Bridge_State = HB_TASK_INIT_STATE;
         current_HB_sequence_index = 0;
 
-        VS_Off();
+
         SchedulerTaskDisable(H_BRIDGE_TASK);
 
         return;
@@ -101,6 +101,7 @@ void H_Bridge_Task(void *) {
     switch (H_Bridge_State) {
         case HB_TASK_INIT_STATE: {
             if (total_active_sequences <= 0) {
+
                 break;
             }
             // Calculate BSRR for the first sequence
@@ -147,16 +148,15 @@ void H_Bridge_Task(void *) {
         case HB_TASK_PULSING: {
             if (HB_Is_Phase_Done() == true)
             {
-                H_Bridge_State = HB_TASK_INIT_STATE;
-
-//                VS_Clear_Sequence();
-//                HB_Clear_Sequence();
-
-                total_active_sequences = 0;
-                is_h_bridge_enable = false;
+            	LL_TIM_DisableCounter(TIM1);
 
                 HB_Off();
                 VS_Off();
+
+                H_Bridge_State = HB_TASK_INIT_STATE;
+
+                total_active_sequences = 0;
+                is_h_bridge_enable = false;
 
                 break;
             }
