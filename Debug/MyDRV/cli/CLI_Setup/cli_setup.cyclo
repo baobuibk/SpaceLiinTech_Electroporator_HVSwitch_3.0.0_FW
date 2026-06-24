@@ -1,2 +1,0 @@
-../MyDRV/cli/CLI_Setup/cli_setup.c:20:13:writeCharToUart_Common	1
-../MyDRV/cli/CLI_Setup/cli_setup.c:34:14:SystemCLI_Init	4
