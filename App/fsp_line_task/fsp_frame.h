@@ -23,13 +23,12 @@ typedef enum _FSP_CMD_typedef_
 	FSP_CMD_SET_CAP_CONTROL,
 	FSP_CMD_SET_CAP_RELEASE,
 
+	FSP_CMD_GET_CAP_STATE,
+
 	FSP_CMD_GET_CAP_VOLT,
 	FSP_CMD_GET_CAP_RELEASE,
 	FSP_CMD_GET_CAP_CONTROL,
 	FSP_CMD_GET_CAP_ALL,
-	FSP_CMD_GET_CAP_IS_CHARGING,
-	FSP_CMD_GET_CAP_FINISH_CHARGE,
-	FSP_CMD_GET_CAP_FINISH_DISCHARGE,
 	FSP_CMD_GET_OVV_FLAG,
 
 	FSP_CMD_MEASURE_VOLT,
@@ -78,27 +77,20 @@ typedef struct _SET_DISCHARGE_ {
 
 }SET_DISCHARGE;
 
+typedef struct _GET_CAP_STATE_{
 
-typedef struct _GET_CHARGE_FINISH{
+	uint8_t		hv_state_idle;
+	uint8_t		hv_state_charging;
+	uint8_t		hv_state_discharging;
+	uint8_t		hv_state_holding_volt;
 
-	uint8_t 	HV_charge_finish_flag;
-	uint8_t 	LV_charge_finish_flag;
+	uint8_t		lv_state_idle;
+	uint8_t		lv_state_charging;
+	uint8_t		lv_state_discharging;
+	uint8_t		lv_state_holding_volt;
 
-}GET_CHARGE_FINISH;
+}GET_CAP_STATE;
 
-typedef struct _GET_DISCHARGE_FINISH{
-
-	uint8_t 	HV_discharge_finish_flag;
-	uint8_t 	LV_discharge_finish_flag;
-
-}GET_DISCHARGE_FINISH;
-
-typedef struct _GET_CAP_IS_CHARGING{
-
-	uint8_t 	HV_is_charging_flag;
-	uint8_t 	LV_is_charging_flag;
-
-}GET_CAP_IS_CHARGING;
 
 typedef struct _GET_OVV_FLAG_ {
 
@@ -178,9 +170,7 @@ typedef union _FSP_Payload_Frame_typedef_
 	SET_CHARGE				set_charge;
 	SET_DISCHARGE			set_discharge;
 
-	GET_CHARGE_FINISH		finish_charge_flag;
-	GET_DISCHARGE_FINISH 	finish_discharge_flag;
-	GET_CAP_IS_CHARGING		cap_is_charging_flag;
+	GET_CAP_STATE			get_cap_state;
 	GET_OVV_FLAG			get_ovv_flag;
 	GET_CAP_ALL				get_cap_all;
 	GET_CAP_VOLT			get_cap_volt;

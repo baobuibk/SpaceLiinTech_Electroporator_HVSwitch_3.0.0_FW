@@ -42,30 +42,142 @@ uint8_t FSP_Line_Process(void)
 		break;
 
 	/*---------- Response information user request--------------*/
-	case FSP_CMD_GET_CAP_CONTROL:
-		break;
+	case FSP_CMD_GET_CAP_STATE:
+	{
+		if (ps_FSP_RX->Payload.get_cap_state.hv_state_idle == true)
+			UART_Driver_SendString(&XBEE_UART,"\r\nHV CAP IS IDLE");
 
-	case FSP_CMD_GET_CAP_RELEASE:
-		break;
+		else if (ps_FSP_RX->Payload.get_cap_state.hv_state_charging == true)
+			UART_Driver_SendString(&XBEE_UART,"\r\nHV CAP IS CHARGING");
 
+		else if (ps_FSP_RX->Payload.get_cap_state.hv_state_discharging == true)
+			UART_Driver_SendString(&XBEE_UART,"\r\nHV CAP IS DISCHARGING");
+
+		else if (ps_FSP_RX->Payload.get_cap_state.hv_state_holding_volt == true)
+			UART_Driver_SendString(&XBEE_UART,"\r\nHV CAP IS HOLDING VOLT");
+
+
+
+		if (ps_FSP_RX->Payload.get_cap_state.lv_state_idle == true)
+			UART_Driver_SendString(&XBEE_UART,"\r\nLV CAP IS IDLE");
+
+		else if (ps_FSP_RX->Payload.get_cap_state.lv_state_charging == true)
+			UART_Driver_SendString(&XBEE_UART,"\r\nLV CAP IS CHARGING");
+
+		else if (ps_FSP_RX->Payload.get_cap_state.lv_state_discharging == true)
+			UART_Driver_SendString(&XBEE_UART,"\r\nLV CAP IS DISCHARGING");
+
+		else if (ps_FSP_RX->Payload.get_cap_state.lv_state_holding_volt == true)
+			UART_Driver_SendString(&XBEE_UART,"\r\nLV CAP IS HOLDING VOLT");
+
+		break;
+	}
 	case FSP_CMD_GET_CAP_VOLT:
-		break;
+	{
+		char msg[64];
 
+		uint16_t hv_set_vol = 	((uint16_t)ps_FSP_RX -> Payload.get_cap_volt.HV_Volt_High << 8)
+								| ps_FSP_RX -> Payload.get_cap_volt.HV_Volt_Low;
+
+		uint16_t lv_set_vol = 	((uint16_t)ps_FSP_RX -> Payload.get_cap_volt.LV_Volt_High << 8)
+								| ps_FSP_RX -> Payload.get_cap_volt.LV_Volt_Low;
+
+		sprintf(msg,"\r\n> HV CAP IS SET AT: %dV, LV CAP IS SET AT: %dV\n", hv_set_vol, lv_set_vol);
+
+		UART_Driver_SendString(&XBEE_UART, msg);
+
+		break;
+	}
+	case FSP_CMD_GET_CAP_CONTROL:
+	{
+		if(ps_FSP_RX -> Payload.get_cap_control.HV_Volt_Charge == true)
+			UART_Driver_SendString(&XBEE_UART,"\r\nHV CAP IS CHARGING");
+
+		else if(ps_FSP_RX -> Payload.get_cap_control.HV_Volt_Charge == false)
+			UART_Driver_SendString(&XBEE_UART,"\r\nHV CAP IS NOT CHARGING");
+
+		if(ps_FSP_RX -> Payload.get_cap_control.LV_Volt_Charge == true)
+			UART_Driver_SendString(&XBEE_UART,"\r\nLV CAP IS CHARGING");
+
+		else if(ps_FSP_RX -> Payload.get_cap_control.LV_Volt_Charge == false)
+			UART_Driver_SendString(&XBEE_UART,"\r\nLV CAP IS NOT CHARGING");
+
+		break;
+	}
+	case FSP_CMD_GET_CAP_RELEASE:
+	{
+		if(ps_FSP_RX -> Payload.get_cap_release.HV_Volt_Discharge == true)
+			UART_Driver_SendString(&XBEE_UART,"\r\nHV CAP IS DISCHARGING");
+
+		else if(ps_FSP_RX -> Payload.get_cap_release.HV_Volt_Discharge == false)
+			UART_Driver_SendString(&XBEE_UART,"\r\nHV CAP IS NOT DISCHARGING");
+
+		if(ps_FSP_RX -> Payload.get_cap_release.LV_Volt_Discharge == true)
+			UART_Driver_SendString(&XBEE_UART,"\r\nLV CAP IS DISCHARGING");
+
+		else if(ps_FSP_RX -> Payload.get_cap_release.LV_Volt_Discharge == false)
+			UART_Driver_SendString(&XBEE_UART,"\r\nLV CAP IS NOT DISCHARGING");
+		break;
+	}
 	case FSP_CMD_GET_CAP_ALL:
-		break;
+	{
+		char msg[64];
 
-	case FSP_CMD_GET_CAP_FINISH_CHARGE:
-		break;
+		uint16_t hv_set_vol = 	((uint16_t)ps_FSP_RX -> Payload.get_cap_all.HV_Volt_High << 8)
+								| ps_FSP_RX -> Payload.get_cap_volt.HV_Volt_Low;
 
-	case FSP_CMD_GET_CAP_FINISH_DISCHARGE:
-		break;
+		uint16_t lv_set_vol = 	((uint16_t)ps_FSP_RX -> Payload.get_cap_all.LV_Volt_High << 8)
+								| ps_FSP_RX -> Payload.get_cap_volt.LV_Volt_Low;
 
-	case FSP_CMD_GET_CAP_IS_CHARGING:
-		break;
+		sprintf(msg,"\r\n> HV CAP IS SET AT: %dV, LV CAP IS SET AT: %dV\n", hv_set_vol, lv_set_vol);
 
+		UART_Driver_SendString(&XBEE_UART, msg);
+
+
+
+		if(ps_FSP_RX -> Payload.get_cap_all.HV_Volt_Charge == true)
+			UART_Driver_SendString(&XBEE_UART,"\r\nHV CAP IS CHARGING");
+
+		else if(ps_FSP_RX -> Payload.get_cap_all.HV_Volt_Charge == false)
+			UART_Driver_SendString(&XBEE_UART,"\r\nHV CAP IS NOT CHARGING");
+
+		if(ps_FSP_RX -> Payload.get_cap_all.LV_Volt_Charge == true)
+			UART_Driver_SendString(&XBEE_UART,"\r\nLV CAP IS CHARGING");
+
+		else if(ps_FSP_RX -> Payload.get_cap_all.LV_Volt_Charge == false)
+			UART_Driver_SendString(&XBEE_UART,"\r\nLV CAP IS NOT CHARGING");
+
+
+
+		if(ps_FSP_RX -> Payload.get_cap_all.HV_Volt_Discharge == true)
+			UART_Driver_SendString(&XBEE_UART,"\r\nHV CAP IS DISCHARGING");
+
+		else if(ps_FSP_RX -> Payload.get_cap_all.HV_Volt_Discharge == false)
+			UART_Driver_SendString(&XBEE_UART,"\r\nHV CAP IS NOT DISCHARGING");
+
+		if(ps_FSP_RX -> Payload.get_cap_all.LV_Volt_Discharge == true)
+			UART_Driver_SendString(&XBEE_UART,"\r\nLV CAP IS DISCHARGING");
+
+		else if(ps_FSP_RX -> Payload.get_cap_all.LV_Volt_Discharge == false)
+			UART_Driver_SendString(&XBEE_UART,"\r\nLV CAP IS NOT DISCHARGING");
+
+		break;
+	}
 	case FSP_CMD_MEASURE_VOLT:
-		break;
+	{
+		char msg[64];
 
+		uint16_t hv_raw_vol = 	((uint16_t)ps_FSP_RX -> Payload.measure_volt.HV_raw_volt_high << 8)
+								| ps_FSP_RX -> Payload.measure_volt.HV_raw_volt_low;
+
+		uint16_t lv_raw_vol = 	((uint16_t)ps_FSP_RX -> Payload.measure_volt.LV_raw_volt_high << 8)
+								| ps_FSP_RX -> Payload.measure_volt.LV_raw_volt_low;
+
+		sprintf(msg, "> HV cap: %dV, LV cap: %dV\r\n", hv_raw_vol, lv_raw_vol);
+		UART_Driver_SendString(&XBEE_UART, msg);
+
+		break;
+	}
 	default:
 		return 0;
 

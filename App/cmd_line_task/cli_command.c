@@ -52,6 +52,7 @@ static void CMD_SET_CAP_VOLT_LV (EmbeddedCli *cli, char *args, void *context);
 static void CMD_SET_CAP_CONTROL (EmbeddedCli *cli, char *args, void *context);
 static void CMD_SET_CAP_RELEASE (EmbeddedCli *cli, char *args, void *context);
 
+static void CMD_GET_CAP_STATE (EmbeddedCli *cli, char *args, void *context);
 static void CMD_GET_CAP_VOLT (EmbeddedCli *cli, char *args, void *context);
 static void CMD_GET_CAP_CONTROL (EmbeddedCli *cli, char *args, void *context);
 static void	CMD_GET_CAP_RELEASE (EmbeddedCli *cli, char *args, void *context);
@@ -95,6 +96,9 @@ static const CliCommandBinding cliStaticBindings_internal[] = {
 	{ NULL,	"GET_CAP_RELEASE", 			"format: GET_CAP_RELEASE",							false,NULL,CMD_GET_CAP_RELEASE},
 	{ NULL,	"GET_CAP_CONTROL", 			"format: GET_CAP_CONTROL",							false,NULL,CMD_GET_CAP_CONTROL},
 	{ NULL,	"GET_CAP_ALL", 				"format: GET_CAP_ALL",								false,NULL,CMD_GET_CAP_ALL},
+	{ NULL,	"GET_CAP_STATE", 			"format: GET_CAP_STATE",							false,NULL,CMD_GET_CAP_STATE},
+
+	{ NULL,	"MEASURE_VOLT", 			"format: MEASURE_VOLT",							false,NULL,CMD_MEASURE_VOLT},
 
 	{ NULL,	"SET_SEQUENCE_INDEX", 		"format: SET_SEQUENCE_INDEX [N]",				true,	NULL,CMD_SET_SEQUENCE_INDEX},
 	{ NULL,	"SET_SEQUENCE_DELETE", 		"format: SET_SEQUENCE_DELETE",					false,	NULL,CMD_SET_SEQUENCE_DELETE},
@@ -353,6 +357,24 @@ static void CMD_GET_CAP_ALL (EmbeddedCli *cli, char *args, void *context){
 
 	return;
 }
+
+static void CMD_GET_CAP_STATE (EmbeddedCli *cli, char *args, void *context){
+
+	int argc = embeddedCliGetTokenCount(args);
+
+	if(argc != 0){
+		embeddedCliPrint(cli,"\n\r> CMDLINE_TOO_MANY_ARGS");
+		return;
+	}
+
+	ps_FSP_TX -> CMD = FSP_CMD_GET_CAP_STATE;
+	fsp_print(1);
+
+	embeddedCliPrint(cli,"CMDLINE_OK\n\r");
+
+	return;
+}
+
 
 static void CMD_MEASURE_VOLT (EmbeddedCli *cli, char *args, void *context){
 
