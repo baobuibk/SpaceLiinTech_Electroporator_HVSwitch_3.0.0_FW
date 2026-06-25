@@ -35,6 +35,7 @@ void VS_Init(void);
 void VS_Pulse(uint32_t t_hv_on_us, uint32_t t_lv_on_us, uint32_t dead_us, uint8_t seq_count);
 
 void VS_Off(void);
+void VS_Enable_Hv(void);
 
 void VS_Start(void);
 
