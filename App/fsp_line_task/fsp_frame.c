@@ -8,6 +8,7 @@
 #include "fsp_frame.h"
 #include "fsp_line_task.h"
 #include "cli_command.h"
+#include "impedance_task.h"
 
 
 #include <stdint.h>
@@ -173,8 +174,13 @@ uint8_t FSP_Line_Process(void)
 		uint16_t lv_raw_vol = 	((uint16_t)ps_FSP_RX -> Payload.measure_volt.LV_raw_volt_high << 8)
 								| ps_FSP_RX -> Payload.measure_volt.LV_raw_volt_low;
 
-		sprintf(msg, "> HV cap: %dV, LV cap: %dV\r\n", hv_raw_vol, lv_raw_vol);
+		sprintf(msg, "\r\nHV cap: %dV, LV cap: %dV", hv_raw_vol, lv_raw_vol);
 		UART_Driver_SendString(&XBEE_UART, msg);
+
+		if(impedance_task_state == IMPEDANCE_TASK_STATE_CHARGING)
+		{
+			impedance_task_volt_charged = hv_raw_vol;
+		}
 
 		break;
 	}

@@ -25,12 +25,15 @@ OBJCOPY_BIN :=
 # Every subdirectory with source files must be described here
 SUBDIRS := \
 App/H_bridge_task \
+App/VOM_Task \
 App \
 App/cmd_line_task \
 App/fsp_line_task \
+App/impedance_task \
 Core/Src \
 Core/Startup \
 Drivers/STM32F4xx_HAL_Driver/Src \
+MyDRV/Device/INA229 \
 MyDRV/H_switch \
 MyDRV/V_switch \
 MyDRV/cli/CLI_Setup \
@@ -38,5 +41,6 @@ MyDRV/cli/CLI_Src \
 MyDRV/fsp \
 MyDRV/pwm \
 MyDRV/scheduler \
+MyDRV/spi \
 MyDRV/uart \
 

@@ -59,6 +59,8 @@ static void	CMD_GET_CAP_RELEASE (EmbeddedCli *cli, char *args, void *context);
 static void CMD_GET_CAP_ALL (EmbeddedCli *cli, char *args, void *context);
 
 static void CMD_MEASURE_VOLT (EmbeddedCli *cli, char *args, void *context);
+static void CMD_MEASURE_IMPEDANCE (EmbeddedCli *cli, char *args, void *context);
+
 
 /*----------------------CMD FOR H BRIDGE CONTROL-----------------------------*/
 
@@ -99,6 +101,7 @@ static const CliCommandBinding cliStaticBindings_internal[] = {
 	{ NULL,	"GET_CAP_STATE", 			"format: GET_CAP_STATE",							false,NULL,CMD_GET_CAP_STATE},
 
 	{ NULL,	"MEASURE_VOLT", 			"format: MEASURE_VOLT",							false,NULL,CMD_MEASURE_VOLT},
+	{ NULL,	"MEASURE_IMPEDANCE", 		"format: MEASURE_IMPEDANCE [N] [M]",					true,NULL,CMD_MEASURE_IMPEDANCE},
 
 	{ NULL,	"SET_SEQUENCE_INDEX", 		"format: SET_SEQUENCE_INDEX [N]",				true,	NULL,CMD_SET_SEQUENCE_INDEX},
 	{ NULL,	"SET_SEQUENCE_DELETE", 		"format: SET_SEQUENCE_DELETE",					false,	NULL,CMD_SET_SEQUENCE_DELETE},
@@ -393,6 +396,33 @@ static void CMD_MEASURE_VOLT (EmbeddedCli *cli, char *args, void *context){
 	return;
 }
 
+static void CMD_MEASURE_IMPEDANCE (EmbeddedCli *cli, char *args, void *context){
+
+	int argc = embeddedCliGetTokenCount(args);
+
+	if (argc < 2) {
+		embeddedCliPrint(cli, "\n\r> CMDLINE_TOO_FEW_ARGS");
+		return;
+	}
+	else if (argc > 2) {
+		embeddedCliPrint(cli, "\n\r> CMDLINE_TOO_MANY_ARGS\n\r");
+		return;
+	}
+
+	uint8_t receive_argm[2];
+
+	receive_argm[0] = atoi(embeddedCliGetToken(args, 1));
+	receive_argm[1] = atoi(embeddedCliGetToken(args, 2));
+
+	impedance_select_pole.pos_pole = ChannelMapping[receive_argm[0] - 1];
+	impedance_select_pole.neg_pole = ChannelMapping[receive_argm[1] - 1];
+
+	impedance_task_state = IMPEDANCE_TASK_STATE_SET_CHARGE;
+	SchedulerTaskEnable(IMPEDANCE_TASK, 1);
+
+
+}
+
 
 /*----------------------CMD FOR H BRIDGE CONTROL-----------------------------*/
 static void	CMD_SET_SEQUENCE_INDEX(EmbeddedCli *cli, char *args, void *context){
@@ -414,7 +444,7 @@ static void	CMD_SET_SEQUENCE_INDEX(EmbeddedCli *cli, char *args, void *context){
 	user_target_seq_idx = atoi(embeddedCliGetToken(args, 1));
 
 	if (user_target_seq_idx < 1 || user_target_seq_idx > MAX_SEQUENCES) {
-		char msg [64];
+//		char msg [64];
 		return;
 	}
 

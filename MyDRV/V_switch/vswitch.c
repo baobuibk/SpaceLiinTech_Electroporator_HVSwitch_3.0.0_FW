@@ -5,6 +5,8 @@
 #include "pwm.h"
 #include "string.h"
 
+#include "stm32f4xx_ll_gpio.h"
+
 
 #include "main.h"
 
@@ -130,6 +132,13 @@ void VS_Pulse(uint32_t t_hv_on_us, uint32_t t_lv_on_us, uint32_t dead_us, uint8_
 	VS_Wave_Add(VS_GetBSRR(VS_LOW), t_lv_on_us);
 
 	VS_Wave_Add(VS_GetBSRR(VS_FLOAT), dead_us);
+
+}
+
+void VS_Enable_Hv(void) {
+
+    LL_GPIO_SetOutputPin(VS_POLES.Port, VS_POLES.HV_Pin); 
+    LL_GPIO_ResetOutputPin(VS_POLES.Port, VS_POLES.LV_Pin);
 
 }
 

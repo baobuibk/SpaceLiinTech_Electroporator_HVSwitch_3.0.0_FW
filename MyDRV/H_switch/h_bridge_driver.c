@@ -1,6 +1,8 @@
 #include "board.h"
 #include "h_bridge_driver.h"
 
+#include "stm32f4xx_ll_gpio.h"
+
 
 #include "main.h"
 
@@ -30,6 +32,17 @@ const HB_Pole_Def_t HB_POLES[8] = {
 };
 
 volatile uint16_t event_count;
+
+void HB_Set_Pole_Pos_Manual(uint8_t ch, uint8_t mass_ch){
+
+    LL_GPIO_SetOutputPin(HB_POLES[ch].Port, HB_POLES[ch].HIN_Pin); 
+    LL_GPIO_ResetOutputPin(HB_POLES[ch].Port, HB_POLES[ch].LIN_Pin);
+
+    LL_GPIO_SetOutputPin(HB_POLES[mass_ch].Port, HB_POLES[mass_ch].LIN_Pin); 
+    LL_GPIO_ResetOutputPin(HB_POLES[mass_ch].Port, HB_POLES[mass_ch].HIN_Pin);
+
+    return;
+}
 
 static uint32_t HB_GetBSRR(uint8_t ch, uint8_t mass_ch, hb_state_t state) {
 

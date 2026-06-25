@@ -29,9 +29,11 @@
 #include <cli/CLI_Setup/cli_setup.h>
 #include "cli_command.h"
 #include "h_bridge_driver.h"
-#include "v_switch_driver.h"
+#include "vswitch.h"
 #include "fsp.h"
 #include "fsp_frame.h"
+#include "spi.h"
+#include "INA229.h"
 
 // USER DIVICE //
 
@@ -39,12 +41,18 @@
 #include "xbee_cmd_task.h"
 #include "h_bridge_task.h"
 #include "fsp_line_task.h"
+#include "vom_task.h"
+#include "impedance_task.h"
+
 
 
 typedef enum
 {
 	CMD_LINE_TASK,
     H_BRIDGE_TASK,
+    FSP_LINE_TASK,
+    VOM_TASK,
+    IMPEDANCE_TASK,
 
 } Task_List_t;
 
