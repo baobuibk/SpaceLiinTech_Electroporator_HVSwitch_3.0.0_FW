@@ -105,10 +105,10 @@
 					</folderInfo>
 					<fileInfo id="com.st.stm32cube.ide.mcu.gnu.managedbuild.config.exe.debug.358475228.2034625801" name="v_switch_driver.h" rcbsApplicability="disable" resourcePath="MyDRV/V_switch/v_switch_driver.h" toolsToInvoke=""/>
 					<sourceEntries>
+						<entry excluding="V_switch/v_switch_driver.h|V_switch/v_switch._driver.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="MyDRV"/>
 						<entry excluding="V_switch_task|database" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="App"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
-						<entry excluding="V_switch/v_switch_driver.h|V_switch/v_switch._driver.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="MyDRV"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

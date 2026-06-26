@@ -25,6 +25,7 @@
 #include <math.h>
 
 
+bool                    is_impedance_task_enable = false;
 impedance_task_state_t  impedance_task_state = IMPEDANCE_TASK_STATE_IDLE;
 uint16_t                impedance_task_volt_charged = 0; 
 impedance_pole          impedance_select_pole = {0,0};
@@ -131,14 +132,12 @@ void impedance_task (void*){
             uint16_t impedance_value = impedance_caculate();
 
             if(impedance_value > impedance_range_array[impedance_range_count]){
-
                 voltage_range_count++;
                 impedance_range_count++;
 
                 impedance_task_state = IMPEDANCE_TASK_STATE_SET_CHARGE;
                 
                 return;
-
             }
 
             char msg[64];
@@ -146,11 +145,16 @@ void impedance_task (void*){
             sprintf(msg, "\r\n> IMPEDANCE IS %d Ohm", impedance_value);
             UART_Driver_SendString(&XBEE_UART, msg);
 
+            HB_Off();
+            VS_Off();
+
             ps_FSP_TX -> CMD = FSP_CMD_SET_CAP_RELEASE;
             ps_FSP_TX -> Payload.set_discharge.HV_cmd_discharge = 1;
             ps_FSP_TX -> Payload.set_discharge.LV_cmd_discharge = 0;
             fsp_print(3);
 
+
+            is_impedance_task_enable = false;
             impedance_task_state = IMPEDANCE_TASK_STATE_IDLE;
 
             break;

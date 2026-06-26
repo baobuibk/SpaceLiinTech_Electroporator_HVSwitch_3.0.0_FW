@@ -10,12 +10,15 @@
 #include <stdbool.h>
 
 
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Global Variable~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 bool is_h_bridge_enable = false;
 
-H_Bridge_Sequence_t Sequence_List[MAX_SEQUENCES] = { 0 };
-uint8_t total_active_sequences = 0;
+H_Bridge_Sequence_t     Sequence_List[MAX_SEQUENCES] = { 0 };
+uint8_t                 total_active_sequences = 0;
 H_Bridge_Task_State     H_Bridge_State;
+
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Private Variable~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 static uint8_t current_HB_sequence_index = 0;
 
@@ -59,9 +62,10 @@ void H_Bridge_Task_Init(void) {
 
     is_h_bridge_enable = false;
 
+    HB_Off();
     VS_Off();
-    H_Bridge_State = HB_TASK_INIT_STATE;
 
+    H_Bridge_State = HB_TASK_INIT_STATE;
 
     for (uint8_t i = 0; i < MAX_SEQUENCES; i++)
     {
@@ -89,12 +93,12 @@ void H_Bridge_Task(void *) {
 
     if(is_h_bridge_enable == false)
     {
-        H_Bridge_State = HB_TASK_INIT_STATE;
+        HB_Off();
+        VS_Off();
+
         current_HB_sequence_index = 0;
-
-
+        H_Bridge_State = HB_TASK_INIT_STATE;
         SchedulerTaskDisable(H_BRIDGE_TASK);
-
         return;
     }
 

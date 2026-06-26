@@ -174,8 +174,12 @@ uint8_t FSP_Line_Process(void)
 		uint16_t lv_raw_vol = 	((uint16_t)ps_FSP_RX -> Payload.measure_volt.LV_raw_volt_high << 8)
 								| ps_FSP_RX -> Payload.measure_volt.LV_raw_volt_low;
 
-		sprintf(msg, "\r\nHV cap: %dV, LV cap: %dV", hv_raw_vol, lv_raw_vol);
-		UART_Driver_SendString(&XBEE_UART, msg);
+		if(is_measure_volt_notify_enable == true){
+			sprintf(msg, "\r\nHV cap: %dV, LV cap: %dV", hv_raw_vol, lv_raw_vol);
+			UART_Driver_SendString(&XBEE_UART, msg);
+
+			is_measure_volt_notify_enable = false;
+		}
 
 		if(impedance_task_state == IMPEDANCE_TASK_STATE_CHARGING)
 		{

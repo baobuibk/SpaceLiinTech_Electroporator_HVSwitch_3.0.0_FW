@@ -21,10 +21,6 @@
 #include <string.h>
 
 
-
-
-
-
 /*************************************************
  *                Private variable                 *
  *************************************************/
@@ -35,6 +31,8 @@ static uint8_t ChannelMapping[8] = {0, 1, 2, 3, 4, 5, 6, 7};
  *                GLobal variable                 *
  *************************************************/
 uint8_t CMD_sequence_index = 0;
+uint8_t is_measure_volt_notify_enable = 0;
+
 
 /*************************************************
  *                Command Define                 *
@@ -58,6 +56,8 @@ static void CMD_GET_CAP_CONTROL (EmbeddedCli *cli, char *args, void *context);
 static void	CMD_GET_CAP_RELEASE (EmbeddedCli *cli, char *args, void *context);
 static void CMD_GET_CAP_ALL (EmbeddedCli *cli, char *args, void *context);
 
+/*----------------------CMD FOR MEASURE--------------------------------*/
+
 static void CMD_MEASURE_VOLT (EmbeddedCli *cli, char *args, void *context);
 static void CMD_MEASURE_IMPEDANCE (EmbeddedCli *cli, char *args, void *context);
 
@@ -78,15 +78,32 @@ static void CMD_SET_PULSE_LV_POS (EmbeddedCli *cli, char *args, void *context);
 static void CMD_SET_PULSE_LV_NEG (EmbeddedCli *cli, char *args, void *context);
 static void CMD_SET_PULSE_CONTROL (EmbeddedCli *cli, char *args, void *context);
 
+
+static void	CMD_GET_SEQUENCE_INDEX(EmbeddedCli *cli, char *args, void *context);
+static void	CMD_GET_SEQUENCE_DELETE (EmbeddedCli *cli, char *args, void *context);
+static void CMD_GET_SEQUENCE_CONFIRM (EmbeddedCli *cli, char *args, void *context);
+static void CMD_GET_SEQUENCE_DELAY (EmbeddedCli *cli, char *args, void *context);
+
+static void CMD_GET_PULSE_POLE (EmbeddedCli *cli, char *args, void *context);
+static void CMD_GET_PULSE_COUNT (EmbeddedCli *cli, char *args, void *context);
+static void CMD_GET_PULSE_DELAY (EmbeddedCli *cli, char *args, void *context);
+static void CMD_GET_PULSE_HV (EmbeddedCli *cli, char *args, void *context);
+static void CMD_GET_PULSE_HV_POS (EmbeddedCli *cli, char *args, void *context);
+static void CMD_GET_PULSE_HV_NEG (EmbeddedCli *cli, char *args, void *context);
+static void CMD_GET_PULSE_LV (EmbeddedCli *cli, char *args, void *context);
+static void CMD_GET_PULSE_LV_POS (EmbeddedCli *cli, char *args, void *context);
+static void CMD_GET_PULSE_LV_NEG (EmbeddedCli *cli, char *args, void *context);
+static void CMD_GET_PULSE_CONTROL (EmbeddedCli *cli, char *args, void *context);
+static void CMD_GET_PULSE_ALL (EmbeddedCli *cli, char *args, void *context);
 /*************************************************
  *                 Command  Array                *
  *************************************************/
 
 
 static const CliCommandBinding cliStaticBindings_internal[] = {
-    { NULL, "HELP",         "format: help",                                         false, NULL, CMD_Help },
-    { NULL, "RESET",        "Reset MCU: reset",                                     false, NULL, CMD_Reset },
-    { NULL, "CLR",          "Clears the console",                                   false, NULL, CMD_ClearCLI },
+    { NULL, "HELP",         			"format: help",                                     false, NULL, CMD_Help },
+    { NULL, "RESET",        			"Reset MCU: reset",                                 false, NULL, CMD_Reset },
+    { NULL, "CLR",         				"Clears the console",                               false, NULL, CMD_ClearCLI },
 
 	{ NULL,	"SET_CAP_VOLT_ALL", 		"format: SET_CAP_VOLT_ALL [HV_Volt] [LV_Volt]",		true,NULL,CMD_SET_CAP_VOLT_ALL},
 	{ NULL,	"SET_CAP_VOLT_HV", 			"format: SET_CAP_VOLT_HV [HV_Volt]",				true,NULL,CMD_SET_CAP_VOLT_HV},
@@ -100,22 +117,41 @@ static const CliCommandBinding cliStaticBindings_internal[] = {
 	{ NULL,	"GET_CAP_ALL", 				"format: GET_CAP_ALL",								false,NULL,CMD_GET_CAP_ALL},
 	{ NULL,	"GET_CAP_STATE", 			"format: GET_CAP_STATE",							false,NULL,CMD_GET_CAP_STATE},
 
-	{ NULL,	"MEASURE_VOLT", 			"format: MEASURE_VOLT",							false,NULL,CMD_MEASURE_VOLT},
-	{ NULL,	"MEASURE_IMPEDANCE", 		"format: MEASURE_IMPEDANCE [N] [M]",					true,NULL,CMD_MEASURE_IMPEDANCE},
 
-	{ NULL,	"SET_SEQUENCE_INDEX", 		"format: SET_SEQUENCE_INDEX [N]",				true,	NULL,CMD_SET_SEQUENCE_INDEX},
-	{ NULL,	"SET_SEQUENCE_DELETE", 		"format: SET_SEQUENCE_DELETE",					false,	NULL,CMD_SET_SEQUENCE_DELETE},
-	{ NULL,	"SET_SEQUENCE_CONFIRM", 	"format: SET_SEQUENCE_CONFIRM",					false,	NULL,CMD_SET_SEQUENCE_CONFIRM},
-	{ NULL,	"SET_SEQUENCE_DELAY", 		"format: SET_SEQUENCE_DELAY [N]",				true,	NULL,CMD_SET_SEQUENCE_DELAY},
+	{ NULL,	"MEASURE_VOLT", 			"format: MEASURE_VOLT",								false,NULL,CMD_MEASURE_VOLT},
+	{ NULL,	"MEASURE_IMPEDANCE", 		"format: MEASURE_IMPEDANCE [N] [M]",				true,NULL,CMD_MEASURE_IMPEDANCE},
 
-	{ NULL,	"SET_PULSE_POLE", 			"format: SET_PULSE_POLE [N] [M]",				true,	NULL,CMD_SET_PULSE_POLE},
-	{ NULL,	"SET_PULSE_COUNT", 			"format: SET_PULSE_COUNT [N] [S] [X] [Y]",		true,	NULL,CMD_SET_PULSE_COUNT},
-	{ NULL,	"SET_PULSE_DELAY", 			"format: SET_PULSE_DELAY [N] [M] [X]",			true,	NULL,CMD_SET_PULSE_DELAY},
-	{ NULL,	"SET_PULSE_HV_POS", 		"format: SET_PULSE_HV_POS [N] [S]",				true,	NULL,CMD_SET_PULSE_HV_POS},
-	{ NULL,	"SET_PULSE_HV_NEG", 		"format: SET_PULSE_HV_NEG [N] [S]",				true,	NULL,CMD_SET_PULSE_HV_NEG},
-	{ NULL,	"SET_PULSE_LV_POS", 		"format: SET_PULSE_LV_POS [N] [S]",				true,	NULL,CMD_SET_PULSE_LV_POS},
-	{ NULL,	"SET_PULSE_LV_NEG", 		"format: SET_PULSE_LV_NEG [N] [S]",				true,	NULL,CMD_SET_PULSE_LV_NEG},
-	{ NULL,	"SET_PULSE_CONTROL", 		"format: SET_PULSE_CONTROL [N]",				true,	NULL,CMD_SET_PULSE_CONTROL},
+
+	{ NULL,	"SET_SEQUENCE_INDEX", 		"format: SET_SEQUENCE_INDEX [N]",					true,	NULL,CMD_SET_SEQUENCE_INDEX},
+	{ NULL,	"SET_SEQUENCE_DELETE", 		"format: SET_SEQUENCE_DELETE",						false,	NULL,CMD_SET_SEQUENCE_DELETE},
+	{ NULL,	"SET_SEQUENCE_CONFIRM", 	"format: SET_SEQUENCE_CONFIRM",						false,	NULL,CMD_SET_SEQUENCE_CONFIRM},
+	{ NULL,	"SET_SEQUENCE_DELAY", 		"format: SET_SEQUENCE_DELAY [N]",					true,	NULL,CMD_SET_SEQUENCE_DELAY},
+
+	{ NULL,	"SET_PULSE_POLE", 			"format: SET_PULSE_POLE [N] [M]",					true,	NULL,CMD_SET_PULSE_POLE},
+	{ NULL,	"SET_PULSE_COUNT", 			"format: SET_PULSE_COUNT [N] [S] [X] [Y]",			true,	NULL,CMD_SET_PULSE_COUNT},
+	{ NULL,	"SET_PULSE_DELAY", 			"format: SET_PULSE_DELAY [N] [M] [X]",				true,	NULL,CMD_SET_PULSE_DELAY},
+	{ NULL,	"SET_PULSE_HV_POS", 		"format: SET_PULSE_HV_POS [N] [S]",					true,	NULL,CMD_SET_PULSE_HV_POS},
+	{ NULL,	"SET_PULSE_HV_NEG", 		"format: SET_PULSE_HV_NEG [N] [S]",					true,	NULL,CMD_SET_PULSE_HV_NEG},
+	{ NULL,	"SET_PULSE_LV_POS", 		"format: SET_PULSE_LV_POS [N] [S]",					true,	NULL,CMD_SET_PULSE_LV_POS},
+	{ NULL,	"SET_PULSE_LV_NEG", 		"format: SET_PULSE_LV_NEG [N] [S]",					true,	NULL,CMD_SET_PULSE_LV_NEG},
+	{ NULL,	"SET_PULSE_CONTROL", 		"format: SET_PULSE_CONTROL [N]",					true,	NULL,CMD_SET_PULSE_CONTROL},
+
+	{ NULL,	"GET_SEQUENCE_INDEX", 		"format: GET_SEQUENCE_INDEX ",						false,	NULL,CMD_GET_SEQUENCE_INDEX},
+	{ NULL,	"GET_SEQUENCE_DELETE", 		"format: GET_SEQUENCE_DELETE",						false,	NULL,CMD_GET_SEQUENCE_DELETE},
+	{ NULL,	"GET_SEQUENCE_CONFIRM", 	"format: GET_SEQUENCE_CONFIRM",						false,	NULL,CMD_GET_SEQUENCE_CONFIRM},
+	{ NULL,	"GET_SEQUENCE_DELAY", 		"format: GET_SEQUENCE_DELAY",						false,	NULL,CMD_GET_SEQUENCE_DELAY},
+
+	{ NULL,	"GET_PULSE_POLE", 			"format: GET_PULSE_POLE",							false,	NULL,CMD_GET_PULSE_POLE},
+	{ NULL,	"GET_PULSE_COUNT", 			"format: GET_PULSE_COUNT",							false,	NULL,CMD_GET_PULSE_COUNT},
+	{ NULL,	"GET_PULSE_DELAY", 			"format: GET_PULSE_DELAY",							false,	NULL,CMD_GET_PULSE_DELAY},
+	{ NULL,	"GET_PULSE_HV", 			"format: GET_PULSE_HV",								false,	NULL,CMD_GET_PULSE_HV},
+	{ NULL,	"GET_PULSE_HV_POS", 		"format: GET_PULSE_HV_POS",							false,	NULL,CMD_GET_PULSE_HV_POS},
+	{ NULL,	"GET_PULSE_HV_NEG", 		"format: GET_PULSE_HV_NEG",							false,	NULL,CMD_GET_PULSE_HV_NEG},
+	{ NULL,	"GET_PULSE_HV", 			"format: GET_PULSE_HV",								false,	NULL,CMD_GET_PULSE_HV},
+	{ NULL,	"GET_PULSE_LV_POS", 		"format: GET_PULSE_LV_POS",							false,	NULL,CMD_GET_PULSE_LV_POS},
+	{ NULL,	"GET_PULSE_LV_NEG", 		"format: GET_PULSE_LV_NEG",							false,	NULL,CMD_GET_PULSE_LV_NEG},
+	{ NULL,	"GET_PULSE_CONTROL", 		"format: GET_PULSE_CONTROL",						false,	NULL,CMD_GET_PULSE_CONTROL},
+	{ NULL,	"GET_PULSE_ALL", 			"format: GET_PULSE_ALL",							false,	NULL,CMD_GET_PULSE_ALL},
 };
 
 /*************************************************
@@ -129,25 +165,24 @@ static void	CMD_SET_CAP_VOLT_ALL(EmbeddedCli *cli, char *args, void *context){
 	uint8_t argc = embeddedCliGetTokenCount(args);
 
 	if(argc < 2) {
-		embeddedCliPrint(cli,"\n\r> CMDLINE_TOO_FEW_ARGS");
+		embeddedCliPrint(cli,"> CMDLINE_TOO_FEW_ARGS");
 		return;
 	}
 	else if(argc > 2){
-		embeddedCliPrint(cli,"\n\r> CMDLINE_TOO_MANY_ARGS\n\r");
+		embeddedCliPrint(cli,"> CMDLINE_TOO_MANY_ARGS");
 		return;
 	}
 
 	uint16_t receive_argm[2];
-
 	receive_argm[0] = atoi(embeddedCliGetToken(args, 1));
 	receive_argm[1] = atoi(embeddedCliGetToken(args, 2));
 
 	if ((receive_argm[0] > 300) || (receive_argm[0] < 0)){
-		embeddedCliPrint(cli,"\n\r> CMDLINE_INVALID_ARG");
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
 		return;
 	}
 	else if ((receive_argm[1] > 50) || (receive_argm[1] < 0)){
-		embeddedCliPrint(cli,"\n\r> CMDLINE_INVALID_ARG");
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
 		return;
 	}
 
@@ -159,7 +194,7 @@ static void	CMD_SET_CAP_VOLT_ALL(EmbeddedCli *cli, char *args, void *context){
 
 	fsp_print(5);
 
-	embeddedCliPrint(cli,"\n\r> CMDLINE_OK");
+	embeddedCliPrint(cli,"> CMDLINE_OK");
 	return;
 }
 
@@ -167,18 +202,18 @@ static void	CMD_SET_CAP_VOLT_HV (EmbeddedCli *cli, char *args, void *context){
 
 	uint8_t argc = embeddedCliGetTokenCount(args);
 	if(argc < 1) {
-		embeddedCliPrint(cli,"\n\r> CMDLINE_TOO_FEW_ARGS");
+		embeddedCliPrint(cli,"> CMDLINE_TOO_FEW_ARGS");
 		return;
 	}
 	else if(argc > 1){
-		embeddedCliPrint(cli,"\n\r> CMDLINE_TOO_MANY_ARGS");
+		embeddedCliPrint(cli,"> CMDLINE_TOO_MANY_ARGS");
 		return;
 	}
 
 	uint16_t receive_argm = atoi(embeddedCliGetToken(args, 1));
 
 	if ((receive_argm > 300) || (receive_argm < 0)){
-		embeddedCliPrint(cli,"\n\r> CMDLINE_INVALID_ARG");
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
 		return;
 	}
 
@@ -188,7 +223,7 @@ static void	CMD_SET_CAP_VOLT_HV (EmbeddedCli *cli, char *args, void *context){
 
 	fsp_print(3);
 
-	embeddedCliPrint(cli,"\n\r> CMDLINE_OK");
+	embeddedCliPrint(cli,"> CMDLINE_OK");
 
 	return;
 }
@@ -197,18 +232,18 @@ static void CMD_SET_CAP_VOLT_LV (EmbeddedCli *cli, char *args, void *context){
 
 	uint8_t argc = embeddedCliGetTokenCount(args);
 	if(argc < 1) {
-		embeddedCliPrint(cli,"\n\r> CMDLINE_TOO_FEW_ARGS");
+		embeddedCliPrint(cli,"> CMDLINE_TOO_FEW_ARGS");
 		return;
 	}
 	else if(argc > 1){
-		embeddedCliPrint(cli,"\n\r> CMDLINE_TOO_MANY_ARGS");
+		embeddedCliPrint(cli,"> CMDLINE_TOO_MANY_ARGS");
 		return;
 	}
 
 	uint16_t receive_argm = atoi(embeddedCliGetToken(args, 1));
 
 	if ((receive_argm > 50) || (receive_argm < 0)){
-		embeddedCliPrint(cli,"\n\r> CMDLINE_INVALID_ARG");
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
 		return;
 	}
 
@@ -218,7 +253,7 @@ static void CMD_SET_CAP_VOLT_LV (EmbeddedCli *cli, char *args, void *context){
 
 	fsp_print(3);
 
-	embeddedCliPrint(cli,"\n\r> CMDLINE_OK");
+	embeddedCliPrint(cli,"> CMDLINE_OK");
 
 	return;
 }
@@ -227,11 +262,11 @@ static void CMD_SET_CAP_CONTROL (EmbeddedCli *cli, char *args, void *context){
 
 	uint8_t argc = embeddedCliGetTokenCount(args);
 	if(argc < 2) {
-		embeddedCliPrint(cli,"\n\r> CMDLINE_TOO_FEW_ARGS");
+		embeddedCliPrint(cli,"> CMDLINE_TOO_FEW_ARGS");
 		return;
 	}
 	else if(argc > 2){
-		embeddedCliPrint(cli,"\n\r> CMDLINE_TOO_MANY_ARGS");
+		embeddedCliPrint(cli,"> CMDLINE_TOO_MANY_ARGS");
 		return;
 	}
 
@@ -240,11 +275,11 @@ static void CMD_SET_CAP_CONTROL (EmbeddedCli *cli, char *args, void *context){
 	receive_argm[1] = atoi(embeddedCliGetToken(args, 2));
 
 	if ((receive_argm[0] > 1) || (receive_argm[0] < 0)){
-		embeddedCliPrint(cli,"\n\r> CMDLINE_INVALID_ARG");
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
 		return;
 	}
 	else if ((receive_argm[1] > 1) || (receive_argm[1] < 0)){
-		embeddedCliPrint(cli,"\n\r> CMDLINE_INVALID_ARG");
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
 		return;
 	}
 
@@ -264,11 +299,11 @@ static void CMD_SET_CAP_RELEASE (EmbeddedCli *cli, char *args, void *context){
 	uint8_t argc = embeddedCliGetTokenCount(args);
 
 	if(argc < 2) {
-		embeddedCliPrint(cli,"\n\r> CMDLINE_TOO_FEW_ARGS");
+		embeddedCliPrint(cli,"> CMDLINE_TOO_FEW_ARGS");
 		return;
 	}
 	else if(argc > 2){
-		embeddedCliPrint(cli,"\n\r> CMDLINE_TOO_MANY_ARGS");
+		embeddedCliPrint(cli,"> CMDLINE_TOO_MANY_ARGS");
 		return;
 	}
 
@@ -277,11 +312,11 @@ static void CMD_SET_CAP_RELEASE (EmbeddedCli *cli, char *args, void *context){
 	receive_argm[1] = atoi(embeddedCliGetToken(args, 2));
 
 	if ((receive_argm[0] > 1) || (receive_argm[0] < 0)){
-		embeddedCliPrint(cli,"\n\r> CMDLINE_INVALID_ARG");
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
 		return;
 	}
 	else if ((receive_argm[1] > 1) || (receive_argm[1] < 0)){
-		embeddedCliPrint(cli,"\n\r> CMDLINE_INVALID_ARG");
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
 		return;
 	}
 
@@ -290,24 +325,23 @@ static void CMD_SET_CAP_RELEASE (EmbeddedCli *cli, char *args, void *context){
 	ps_FSP_TX -> Payload.set_discharge.LV_cmd_discharge = receive_argm[1];
 
 	fsp_print(3);
-	embeddedCliPrint(cli,"CMDLINE_OK\n\r");
+	embeddedCliPrint(cli,"> CMDLINE_OK");
 	return ;
 
 }
-
 
 static void CMD_GET_CAP_VOLT (EmbeddedCli *cli, char *args, void *context){
 
 	int argc = embeddedCliGetTokenCount(args);
 	if(argc != 0){
-		embeddedCliPrint(cli,"\n\r> CMDLINE_TOO_MANY_ARGS");
+		embeddedCliPrint(cli,"> CMDLINE_TOO_MANY_ARGS");
 		return;
 	}
 
 	ps_FSP_TX -> CMD = FSP_CMD_GET_CAP_VOLT;
 	fsp_print(1);
 
-	embeddedCliPrint(cli,"CMDLINE_OK\n\r");
+	embeddedCliPrint(cli,"> CMDLINE_OK");
 
 	return;         
 }
@@ -316,14 +350,14 @@ static void CMD_GET_CAP_CONTROL (EmbeddedCli *cli, char *args, void *context){
 
 	int argc = embeddedCliGetTokenCount(args);
 	if(argc != 0){
-		embeddedCliPrint(cli,"\n\r> CMDLINE_TOO_MANY_ARGS");
+		embeddedCliPrint(cli,"> CMDLINE_TOO_MANY_ARGS");
 		return;
 	}
 
 	ps_FSP_TX -> CMD = FSP_CMD_GET_CAP_CONTROL;
 	fsp_print(1);
 	
-	embeddedCliPrint(cli,"CMDLINE_OK\n\r");
+	embeddedCliPrint(cli,"> CMDLINE_OK");
 
 	return;
 }
@@ -332,14 +366,14 @@ static void	CMD_GET_CAP_RELEASE (EmbeddedCli *cli, char *args, void *context){
 
 	int argc = embeddedCliGetTokenCount(args);
 	if(argc != 0){
-		embeddedCliPrint(cli,"\n\r> CMDLINE_TOO_MANY_ARGS");
+		embeddedCliPrint(cli,"> CMDLINE_TOO_MANY_ARGS");
 		return;
 	}
 
 	ps_FSP_TX -> CMD = FSP_CMD_GET_CAP_RELEASE;
 	fsp_print(1);
 	
-	embeddedCliPrint(cli,"CMDLINE_OK\n\r");
+	embeddedCliPrint(cli,"> CMDLINE_OK");
 
 	return;
 }
@@ -349,14 +383,14 @@ static void CMD_GET_CAP_ALL (EmbeddedCli *cli, char *args, void *context){
 	int argc = embeddedCliGetTokenCount(args);
 
 	if(argc != 0){
-		embeddedCliPrint(cli,"\n\r> CMDLINE_TOO_MANY_ARGS");
+		embeddedCliPrint(cli,"> CMDLINE_TOO_MANY_ARGS");
 		return;
 	}
 
 	ps_FSP_TX -> CMD = FSP_CMD_GET_CAP_ALL;
 	fsp_print(1);
 	
-	embeddedCliPrint(cli,"CMDLINE_OK\n\r");
+	embeddedCliPrint(cli,"> CMDLINE_OK");
 
 	return;
 }
@@ -366,14 +400,14 @@ static void CMD_GET_CAP_STATE (EmbeddedCli *cli, char *args, void *context){
 	int argc = embeddedCliGetTokenCount(args);
 
 	if(argc != 0){
-		embeddedCliPrint(cli,"\n\r> CMDLINE_TOO_MANY_ARGS");
+		embeddedCliPrint(cli,"> CMDLINE_TOO_MANY_ARGS");
 		return;
 	}
 
 	ps_FSP_TX -> CMD = FSP_CMD_GET_CAP_STATE;
 	fsp_print(1);
 
-	embeddedCliPrint(cli,"CMDLINE_OK\n\r");
+	embeddedCliPrint(cli,"> CMDLINE_OK");
 
 	return;
 }
@@ -384,28 +418,35 @@ static void CMD_MEASURE_VOLT (EmbeddedCli *cli, char *args, void *context){
 	int argc = embeddedCliGetTokenCount(args);
 
 	if(argc != 0){
-		embeddedCliPrint(cli,"\n\r> CMDLINE_TOO_MANY_ARGS");
+		embeddedCliPrint(cli,"> CMDLINE_TOO_MANY_ARGS");
 		return;
 	}
+
+	is_measure_volt_notify_enable = true;
 
 	ps_FSP_TX -> CMD = FSP_CMD_MEASURE_VOLT;
 	fsp_print(1);
 	
-	embeddedCliPrint(cli,"CMDLINE_OK\n\r");
+	embeddedCliPrint(cli,"> CMDLINE_OK");
 
 	return;
 }
 
 static void CMD_MEASURE_IMPEDANCE (EmbeddedCli *cli, char *args, void *context){
 
+	if(is_h_bridge_enable == true){
+		embeddedCliPrint(cli, "> H BRIDGE PULSING IS IN PROGRESS");
+		return;
+	}
+
 	int argc = embeddedCliGetTokenCount(args);
 
 	if (argc < 2) {
-		embeddedCliPrint(cli, "\n\r> CMDLINE_TOO_FEW_ARGS");
+		embeddedCliPrint(cli, "> CMDLINE_TOO_FEW_ARGS");
 		return;
 	}
 	else if (argc > 2) {
-		embeddedCliPrint(cli, "\n\r> CMDLINE_TOO_MANY_ARGS\n\r");
+		embeddedCliPrint(cli, "> CMDLINE_TOO_MANY_ARGS");
 		return;
 	}
 
@@ -420,7 +461,9 @@ static void CMD_MEASURE_IMPEDANCE (EmbeddedCli *cli, char *args, void *context){
 	impedance_task_state = IMPEDANCE_TASK_STATE_SET_CHARGE;
 	SchedulerTaskEnable(IMPEDANCE_TASK, 1);
 
+	embeddedCliPrint(cli,"> CMDLINE_OK");
 
+	return;
 }
 
 
@@ -430,25 +473,29 @@ static void	CMD_SET_SEQUENCE_INDEX(EmbeddedCli *cli, char *args, void *context){
 	int argc = embeddedCliGetTokenCount(args);
 
 	if (argc < 1) {
-		embeddedCliPrint(cli, "\n\r> CMDLINE_TOO_FEW_ARGS");
+		embeddedCliPrint(cli, "> CMDLINE_TOO_FEW_ARGS");
 		return;
 	}
-
 	else if (argc > 1) {
-		embeddedCliPrint(cli, "\n\r> CMDLINE_TOO_MANY_ARGS\n\r");
+		embeddedCliPrint(cli, "> CMDLINE_TOO_MANY_ARGS");
 		return;
 	}
 
 	uint8_t user_target_seq_idx;
-
 	user_target_seq_idx = atoi(embeddedCliGetToken(args, 1));
 
-	if (user_target_seq_idx < 1 || user_target_seq_idx > MAX_SEQUENCES) {
-//		char msg [64];
+	if (user_target_seq_idx < 1 || user_target_seq_idx > MAX_SEQUENCES){
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
 		return;
 	}
 
-	if(user_target_seq_idx > (CMD_sequence_index + 2)){
+	if(user_target_seq_idx > (CMD_sequence_index + 1)){
+		char msg[128];
+		sprintf(msg,"> ERROR YOUR NEXT SEQUENCE INDEX IS: %d, NOT %d\n", total_active_sequences + 1, user_target_seq_idx);
+		UART_Driver_SendString(&XBEE_UART, msg);
+		
+		sprintf(msg,"> > CURRENT SEQUENCE INDEX: %d\n", total_active_sequences);
+		UART_Driver_SendString(&XBEE_UART, msg);
 		return;
 	}
 
@@ -457,6 +504,9 @@ static void	CMD_SET_SEQUENCE_INDEX(EmbeddedCli *cli, char *args, void *context){
 	Sequence_List[CMD_sequence_index].is_edit_enable = true;
 
 	total_active_sequences = CMD_sequence_index + 1;
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+
 	return;
 }
 
@@ -465,13 +515,14 @@ static void	CMD_SET_SEQUENCE_DELETE(EmbeddedCli *cli, char *args, void *context)
 	int argc = embeddedCliGetTokenCount(args);
 
 	if(argc != 0){
-		embeddedCliPrint(cli,"\n\r> CMDLINE_INVALID_ARG");
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
 	}
 
 	Sequence_List[CMD_sequence_index].is_edit_enable = false;
-
 	total_active_sequences = CMD_sequence_index--;
 
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;
 }
 
 static void	CMD_SET_SEQUENCE_CONFIRM(EmbeddedCli *cli, char *args, void *context){
@@ -479,13 +530,15 @@ static void	CMD_SET_SEQUENCE_CONFIRM(EmbeddedCli *cli, char *args, void *context
 	int argc = embeddedCliGetTokenCount(args);
 
 	if(argc != 0){
-		embeddedCliPrint(cli,"\n\r> CMDLINE_INVALID_ARG");
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
 		return;
 	}
 
 	Sequence_List[CMD_sequence_index].is_edit_enable = false;
 	Sequence_List[CMD_sequence_index].is_confirm	 = true;
 
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;
 }
 
 static void	CMD_SET_SEQUENCE_DELAY(EmbeddedCli *cli, char *args, void *context){
@@ -493,17 +546,19 @@ static void	CMD_SET_SEQUENCE_DELAY(EmbeddedCli *cli, char *args, void *context){
 	int argc = embeddedCliGetTokenCount(args);
 
 	if (argc < 1) {
-		embeddedCliPrint(cli, "\n\r> CMDLINE_TOO_FEW_ARGS");
+		embeddedCliPrint(cli, "> CMDLINE_TOO_FEW_ARGS");
 		return;
 	} else if (argc > 1) {
-		embeddedCliPrint(cli, "\n\r> CMDLINE_TOO_MANY_ARGS\n\r");
+		embeddedCliPrint(cli, "> CMDLINE_TOO_MANY_ARGS");
 		return;
 	}
 
-	if (Sequence_List[CMD_sequence_index].is_edit_enable == true) {
-		uint8_t receive_argm = atoi(embeddedCliGetToken(args, 1));
-		Sequence_List[CMD_sequence_index].sequence_delay_ms = receive_argm;
-	}
+	if (Sequence_List[CMD_sequence_index].is_edit_enable == false) return;
+
+	uint8_t receive_argm = atoi(embeddedCliGetToken(args, 1));
+	Sequence_List[CMD_sequence_index].sequence_delay_ms = receive_argm;
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
 	return;
 }
 
@@ -513,10 +568,10 @@ static void	CMD_SET_PULSE_POLE(EmbeddedCli *cli, char *args, void *context){
 	int argc = embeddedCliGetTokenCount(args);
 
 	if (argc < 2) {
-		embeddedCliPrint(cli, "\n\r> CMDLINE_TOO_FEW_ARGS");
+		embeddedCliPrint(cli, "> CMDLINE_TOO_FEW_ARGS");
 		return;
 	} else if (argc > 2) {
-		embeddedCliPrint(cli, "\n\r> CMDLINE_TOO_MANY_ARGS\n\r");
+		embeddedCliPrint(cli, "> CMDLINE_TOO_MANY_ARGS");
 		return;
 	}
 
@@ -530,6 +585,7 @@ static void	CMD_SET_PULSE_POLE(EmbeddedCli *cli, char *args, void *context){
 	Sequence_List[CMD_sequence_index].pos_pole_index =  ChannelMapping[receive_argm[0] - 1];
 	Sequence_List[CMD_sequence_index].neg_pole_index =  ChannelMapping[receive_argm[1] - 1];
 
+	embeddedCliPrint(cli,"> CMDLINE_OK");
 	return;
 }
 
@@ -538,12 +594,14 @@ static void	CMD_SET_PULSE_COUNT(EmbeddedCli *cli, char *args, void *context){
 	int argc = embeddedCliGetTokenCount(args);
 
 	if (argc < 4) {
-		embeddedCliPrint(cli, "\n\r> CMDLINE_TOO_FEW_ARGS");
+		embeddedCliPrint(cli, "> CMDLINE_TOO_FEW_ARGS");
 		return;
 	} else if (argc > 4) {
-		embeddedCliPrint(cli, "\n\r> CMDLINE_TOO_MANY_ARGS\n\r");
+		embeddedCliPrint(cli, "> CMDLINE_TOO_MANY_ARGS");
 		return;
 	}
+
+	if (Sequence_List[CMD_sequence_index].is_edit_enable == false) return;
 
 	int receive_argm[4];
 
@@ -553,11 +611,9 @@ static void	CMD_SET_PULSE_COUNT(EmbeddedCli *cli, char *args, void *context){
 	receive_argm[3] = atoi(embeddedCliGetToken(args, 4));
 
 	if ((receive_argm[0] > 20) || (receive_argm[1] > 20) || (receive_argm[2] > 20) || (receive_argm[3] > 20)){
-		embeddedCliPrint(cli,"\n\r> CMDLINE_INVALID_ARG");
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
 		return;
 	}
-
-	if (Sequence_List[CMD_sequence_index].is_edit_enable == false) return;
 
 	Sequence_List[CMD_sequence_index].hv_pos_count 	= receive_argm[0];
 	Sequence_List[CMD_sequence_index].hv_neg_count 	= receive_argm[1];
@@ -565,6 +621,7 @@ static void	CMD_SET_PULSE_COUNT(EmbeddedCli *cli, char *args, void *context){
     Sequence_List[CMD_sequence_index].lv_pos_count 	= receive_argm[2];
     Sequence_List[CMD_sequence_index].lv_neg_count 	= receive_argm[3];
 
+	embeddedCliPrint(cli,"> CMDLINE_OK");
     return;
 }
 
@@ -573,12 +630,14 @@ static void	CMD_SET_PULSE_DELAY(EmbeddedCli *cli, char *args, void *context){
 	int argc = embeddedCliGetTokenCount(args);
 
 	if (argc < 3) {
-		embeddedCliPrint(cli, "\n\r> CMDLINE_TOO_FEW_ARGS");
+		embeddedCliPrint(cli, "> CMDLINE_TOO_FEW_ARGS");
 		return;
 	} else if (argc > 3) {
-		embeddedCliPrint(cli, "\n\r> CMDLINE_TOO_MANY_ARGS\n\r");
+		embeddedCliPrint(cli, "> CMDLINE_TOO_MANY_ARGS");
 		return;
 	}
+
+	if (Sequence_List[CMD_sequence_index].is_edit_enable == false) return;
 
 	int receive_argm[3];
 
@@ -586,14 +645,11 @@ static void	CMD_SET_PULSE_DELAY(EmbeddedCli *cli, char *args, void *context){
 	receive_argm[1] = atoi(embeddedCliGetToken(args, 2));
 	receive_argm[2] = atoi(embeddedCliGetToken(args, 3));
 
-	if (Sequence_List[CMD_sequence_index].is_edit_enable == false) return;
-
 	Sequence_List[CMD_sequence_index].hv_delay_ms = receive_argm[0];
 	Sequence_List[CMD_sequence_index].lv_delay_ms = receive_argm[1];
 	Sequence_List[CMD_sequence_index].pulse_delay_ms = receive_argm[2];
 
-	embeddedCliPrint(cli, "\n\r> CMDLINE_OK");
-
+	embeddedCliPrint(cli, "> CMDLINE_OK");
 	return;
 }
 
@@ -602,12 +658,14 @@ static void	CMD_SET_PULSE_HV_POS(EmbeddedCli *cli, char *args, void *context){
 	int argc = embeddedCliGetTokenCount(args);
 
 	if (argc < 2) {
-		embeddedCliPrint(cli, "\n\r> CMDLINE_TOO_FEW_ARGS");
+		embeddedCliPrint(cli, "> CMDLINE_TOO_FEW_ARGS");
 		return;
 	} else if (argc > 2) {
-		embeddedCliPrint(cli, "\n\r> CMDLINE_TOO_MANY_ARGS\n\r");
+		embeddedCliPrint(cli, "> CMDLINE_TOO_MANY_ARGS");
 		return;
 	}
+
+	if(Sequence_List[CMD_sequence_index].is_edit_enable == false) return;
 
 	int receive_argm[2];
 
@@ -615,20 +673,18 @@ static void	CMD_SET_PULSE_HV_POS(EmbeddedCli *cli, char *args, void *context){
 	receive_argm[1] = atoi(embeddedCliGetToken(args, 2));
 
 	if ((receive_argm[0] > 1000) || (receive_argm[0] < 1)){
-		embeddedCliPrint(cli,"\n\r> CMDLINE_INVALID_ARG");
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
 		return;
 	}
 	else if ((receive_argm[1] > 1000) || (receive_argm[1] < 1)){
-		embeddedCliPrint(cli,"\n\r> CMDLINE_INVALID_ARG");
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
 		return;
 	}
-
-	if(Sequence_List[CMD_sequence_index].is_edit_enable == false) return;
 
 	Sequence_List[CMD_sequence_index].hv_pos_on_ms   = receive_argm[0];
 	Sequence_List[CMD_sequence_index].hv_pos_off_ms  = receive_argm[1];
 
-	embeddedCliPrint(cli, "\n\r> CMDLINE_OK");
+	embeddedCliPrint(cli, "> CMDLINE_OK");
 
 	return;
 }
@@ -638,10 +694,10 @@ static void	CMD_SET_PULSE_HV_NEG(EmbeddedCli *cli, char *args, void *context){
 	int argc = embeddedCliGetTokenCount(args);
 
 	if (argc < 2) {
-		embeddedCliPrint(cli, "\n\r> CMDLINE_TOO_FEW_ARGS");
+		embeddedCliPrint(cli, "> CMDLINE_TOO_FEW_ARGS");
 		return;
 	} else if (argc > 2) {
-		embeddedCliPrint(cli, "\n\r> CMDLINE_TOO_MANY_ARGS\n\r");
+		embeddedCliPrint(cli, "> CMDLINE_TOO_MANY_ARGS");
 		return;
 	}
 
@@ -651,11 +707,11 @@ static void	CMD_SET_PULSE_HV_NEG(EmbeddedCli *cli, char *args, void *context){
 	receive_argm[1] = atoi(embeddedCliGetToken(args, 2));
 
 	if ((receive_argm[0] > 1000) || (receive_argm[0] < 1)){
-		embeddedCliPrint(cli,"\n\r> CMDLINE_INVALID_ARG");
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
 		return;
 	}
 	else if ((receive_argm[1] > 1000) || (receive_argm[1] < 1)){
-		embeddedCliPrint(cli,"\n\r> CMDLINE_INVALID_ARG");
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
 		return;
 	}
 
@@ -664,7 +720,7 @@ static void	CMD_SET_PULSE_HV_NEG(EmbeddedCli *cli, char *args, void *context){
 	Sequence_List[CMD_sequence_index].hv_neg_on_ms   = receive_argm[0];
 	Sequence_List[CMD_sequence_index].hv_neg_off_ms  = receive_argm[1];
 
-	embeddedCliPrint(cli, "\n\r> CMDLINE_OK");
+	embeddedCliPrint(cli, "> CMDLINE_OK");
 	return;
 }
 
@@ -673,10 +729,10 @@ static void	CMD_SET_PULSE_LV_POS(EmbeddedCli *cli, char *args, void *context){
 	int argc = embeddedCliGetTokenCount(args);
 
 	if (argc < 2) {
-		embeddedCliPrint(cli, "\n\r> CMDLINE_TOO_FEW_ARGS");
+		embeddedCliPrint(cli, "> CMDLINE_TOO_FEW_ARGS");
 		return;
 	} else if (argc > 2) {
-		embeddedCliPrint(cli, "\n\r> CMDLINE_TOO_MANY_ARGS\n\r");
+		embeddedCliPrint(cli, "> CMDLINE_TOO_MANY_ARGS");
 		return;
 	}
 
@@ -686,11 +742,11 @@ static void	CMD_SET_PULSE_LV_POS(EmbeddedCli *cli, char *args, void *context){
 	receive_argm[1] = atoi(embeddedCliGetToken(args, 2));
 
 	if ((receive_argm[0] > 1000) || (receive_argm[0] < 1)){
-		embeddedCliPrint(cli,"\n\r> CMDLINE_INVALID_ARG");
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
 		return;
 	}
 	else if ((receive_argm[1] > 1000) || (receive_argm[1] < 1)){
-		embeddedCliPrint(cli,"\n\r> CMDLINE_INVALID_ARG");
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
 		return;
 	}
 
@@ -699,7 +755,7 @@ static void	CMD_SET_PULSE_LV_POS(EmbeddedCli *cli, char *args, void *context){
 	Sequence_List[CMD_sequence_index].lv_pos_on_ms   = receive_argm[0];
 	Sequence_List[CMD_sequence_index].lv_pos_off_ms  = receive_argm[1];
 
-	embeddedCliPrint(cli, "\n\r> CMDLINE_OK");
+	embeddedCliPrint(cli, "> CMDLINE_OK");
 	return;
 }
 
@@ -708,10 +764,10 @@ static void	CMD_SET_PULSE_LV_NEG(EmbeddedCli *cli, char *args, void *context){
 	int argc = embeddedCliGetTokenCount(args);
 
 	if (argc < 2) {
-		embeddedCliPrint(cli, "\n\r> CMDLINE_TOO_FEW_ARGS");
+		embeddedCliPrint(cli, "> CMDLINE_TOO_FEW_ARGS");
 		return;
 	} else if (argc > 2) {
-		embeddedCliPrint(cli, "\n\r> CMDLINE_TOO_MANY_ARGS\n\r");
+		embeddedCliPrint(cli, "> CMDLINE_TOO_MANY_ARGS");
 		return;
 	}
 
@@ -721,11 +777,11 @@ static void	CMD_SET_PULSE_LV_NEG(EmbeddedCli *cli, char *args, void *context){
 	receive_argm[1] = atoi(embeddedCliGetToken(args, 2));
 
 	if ((receive_argm[0] > 1000) || (receive_argm[0] < 1)){
-		embeddedCliPrint(cli,"\n\r> CMDLINE_INVALID_ARG");
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
 		return;
 	}
 	else if ((receive_argm[1] > 1000) || (receive_argm[1] < 1)){
-		embeddedCliPrint(cli,"\n\r> CMDLINE_INVALID_ARG");
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
 		return;
 	}
 
@@ -734,34 +790,65 @@ static void	CMD_SET_PULSE_LV_NEG(EmbeddedCli *cli, char *args, void *context){
 	Sequence_List[CMD_sequence_index].lv_neg_on_ms   = receive_argm[0];
 	Sequence_List[CMD_sequence_index].lv_neg_off_ms  = receive_argm[1];
 
-	embeddedCliPrint(cli, "\n\r> CMDLINE_OK");
+	embeddedCliPrint(cli, "> CMDLINE_OK");
 	return;
 }
 
 static void	CMD_SET_PULSE_CONTROL(EmbeddedCli *cli, char *args, void *context){
 
+	if(is_impedance_task_enable == true){
+		embeddedCliPrint(cli, "> IMPEDANCE MEASURE TASK IS IN PROGRESS");
+		return;
+	}
+
 	int argc = embeddedCliGetTokenCount(args);
 
 	if (argc < 1) {
-		embeddedCliPrint(cli, "\n\r> CMDLINE_TOO_FEW_ARGS");
+		embeddedCliPrint(cli, "> CMDLINE_TOO_FEW_ARGS");
 		return;
 	} else if (argc > 1) {
-		embeddedCliPrint(cli, "\n\r> CMDLINE_TOO_MANY_ARGS\n\r");
+		embeddedCliPrint(cli, "> CMDLINE_TOO_MANY_ARGS");
 		return;
 	}
 
 	uint8_t receive_argm;
-
 	receive_argm = atoi(embeddedCliGetToken(args, 1));
 
 	if (receive_argm != 1)
 		return;
 
 	is_h_bridge_enable = receive_argm;
+
+	if(Sequence_List[CMD_sequence_index].is_confirm == false) {
+		embeddedCliPrint(cli, "> PLEASE COMFIRM CURRENT SEQUENCE");
+		return;
+	}
+
 	SchedulerTaskEnable(H_BRIDGE_TASK, 1);
 
 	return;
 }
+
+static void	CMD_GET_SEQUENCE_INDEX(EmbeddedCli *cli, char *args, void *context){
+
+
+}
+
+static void	CMD_GET_SEQUENCE_DELETE (EmbeddedCli *cli, char *args, void *context){}
+static void CMD_GET_SEQUENCE_CONFIRM (EmbeddedCli *cli, char *args, void *context){}
+static void CMD_GET_SEQUENCE_DELAY (EmbeddedCli *cli, char *args, void *context){}
+
+static void CMD_GET_PULSE_POLE (EmbeddedCli *cli, char *args, void *context){}
+static void CMD_GET_PULSE_COUNT (EmbeddedCli *cli, char *args, void *context){}
+static void CMD_GET_PULSE_DELAY (EmbeddedCli *cli, char *args, void *context){}
+static void CMD_GET_PULSE_HV (EmbeddedCli *cli, char *args, void *context){}
+static void CMD_GET_PULSE_HV_POS (EmbeddedCli *cli, char *args, void *context){}
+static void CMD_GET_PULSE_HV_NEG (EmbeddedCli *cli, char *args, void *context){}
+static void CMD_GET_PULSE_LV (EmbeddedCli *cli, char *args, void *context){}
+static void CMD_GET_PULSE_LV_POS (EmbeddedCli *cli, char *args, void *context){}
+static void CMD_GET_PULSE_LV_NEG (EmbeddedCli *cli, char *args, void *context){}
+static void CMD_GET_PULSE_CONTROL (EmbeddedCli *cli, char *args, void *context){}
+static void CMD_GET_PULSE_ALL (EmbeddedCli *cli, char *args, void *context){}
 
 
 

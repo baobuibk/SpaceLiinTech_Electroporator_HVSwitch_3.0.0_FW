@@ -68,8 +68,8 @@
 /******************************************************/
 
 /*********************UART**********************/
-#define XBEE_UART_HANDLE       	USART1
-#define XBEE_UART_IRQ          	USART1_IRQn
+#define XBEE_UART_HANDLE       	USART3
+#define XBEE_UART_IRQ          	USART3_IRQn
 
 #define GPC_UART_HANDLE			UART4
 #define GPC_UART_IRQ			UART4_IRQn

@@ -30,6 +30,7 @@ typedef struct{
 }impedance_pole;
 
 
+extern bool                    is_impedance_task_enable;
 extern impedance_task_state_t  impedance_task_state;
 extern uint16_t                impedance_task_volt_charged;
 extern impedance_pole          impedance_select_pole;
