@@ -49,12 +49,14 @@ static void	CMD_SET_CAP_VOLT_HV (EmbeddedCli *cli, char *args, void *context);
 static void CMD_SET_CAP_VOLT_LV (EmbeddedCli *cli, char *args, void *context);
 static void CMD_SET_CAP_CONTROL (EmbeddedCli *cli, char *args, void *context);
 static void CMD_SET_CAP_RELEASE (EmbeddedCli *cli, char *args, void *context);
+static void CMD_RESET_CAP_OVV (EmbeddedCli *cli, char *args, void *context);
 
 static void CMD_GET_CAP_STATE (EmbeddedCli *cli, char *args, void *context);
 static void CMD_GET_CAP_VOLT (EmbeddedCli *cli, char *args, void *context);
 static void CMD_GET_CAP_CONTROL (EmbeddedCli *cli, char *args, void *context);
 static void	CMD_GET_CAP_RELEASE (EmbeddedCli *cli, char *args, void *context);
 static void CMD_GET_CAP_ALL (EmbeddedCli *cli, char *args, void *context);
+static void CMD_GET_CAP_OVV (EmbeddedCli *cli, char *args, void *context);
 
 /*----------------------CMD FOR MEASURE--------------------------------*/
 
@@ -83,6 +85,7 @@ static void	CMD_GET_SEQUENCE_INDEX(EmbeddedCli *cli, char *args, void *context);
 static void	CMD_GET_SEQUENCE_DELETE (EmbeddedCli *cli, char *args, void *context);
 static void CMD_GET_SEQUENCE_CONFIRM (EmbeddedCli *cli, char *args, void *context);
 static void CMD_GET_SEQUENCE_DELAY (EmbeddedCli *cli, char *args, void *context);
+static void CMD_GET_SEQUENCE_ALL (EmbeddedCli *cli, char *args, void *context);
 
 static void CMD_GET_PULSE_POLE (EmbeddedCli *cli, char *args, void *context);
 static void CMD_GET_PULSE_COUNT (EmbeddedCli *cli, char *args, void *context);
@@ -110,23 +113,23 @@ static const CliCommandBinding cliStaticBindings_internal[] = {
 	{ NULL,	"SET_CAP_VOLT_LV", 			"format: SET_CAP_VOLT_LV [LV_Volt]",				true,NULL,CMD_SET_CAP_VOLT_LV},
 	{ NULL,	"SET_CAP_CONTROL", 			"format: SET_CAP_CONTROL [N] [S]",					true,NULL,CMD_SET_CAP_CONTROL},
 	{ NULL,	"SET_CAP_RELEASE", 			"format: SET_CAP_RELEASE [N] [S]",					true,NULL,CMD_SET_CAP_RELEASE},
+	{ NULL,	"RESET_CAP_OVV", 			"format: RESET_CAP_OVV [N] [S]",					true,NULL,CMD_RESET_CAP_OVV},
 
 	{ NULL,	"GET_CAP_VOLT", 			"format: GET_CAP_VOLT ",							false,NULL,CMD_GET_CAP_VOLT},
 	{ NULL,	"GET_CAP_RELEASE", 			"format: GET_CAP_RELEASE",							false,NULL,CMD_GET_CAP_RELEASE},
 	{ NULL,	"GET_CAP_CONTROL", 			"format: GET_CAP_CONTROL",							false,NULL,CMD_GET_CAP_CONTROL},
 	{ NULL,	"GET_CAP_ALL", 				"format: GET_CAP_ALL",								false,NULL,CMD_GET_CAP_ALL},
 	{ NULL,	"GET_CAP_STATE", 			"format: GET_CAP_STATE",							false,NULL,CMD_GET_CAP_STATE},
-
+	{ NULL,	"GET_CAP_OVV", 				"format: GET_CAP_OVV",								false,NULL,CMD_GET_CAP_OVV},
 
 	{ NULL,	"MEASURE_VOLT", 			"format: MEASURE_VOLT",								false,NULL,CMD_MEASURE_VOLT},
 	{ NULL,	"MEASURE_IMPEDANCE", 		"format: MEASURE_IMPEDANCE [N] [M]",				true,NULL,CMD_MEASURE_IMPEDANCE},
-
 
 	{ NULL,	"SET_SEQUENCE_INDEX", 		"format: SET_SEQUENCE_INDEX [N]",					true,	NULL,CMD_SET_SEQUENCE_INDEX},
 	{ NULL,	"SET_SEQUENCE_DELETE", 		"format: SET_SEQUENCE_DELETE",						false,	NULL,CMD_SET_SEQUENCE_DELETE},
 	{ NULL,	"SET_SEQUENCE_CONFIRM", 	"format: SET_SEQUENCE_CONFIRM",						false,	NULL,CMD_SET_SEQUENCE_CONFIRM},
 	{ NULL,	"SET_SEQUENCE_DELAY", 		"format: SET_SEQUENCE_DELAY [N]",					true,	NULL,CMD_SET_SEQUENCE_DELAY},
-
+	{ NULL,	"SET_SEQUENCE_DELAY", 		"format: SET_SEQUENCE_DELAY [N]",					true,	NULL,CMD_SET_SEQUENCE_DELAY},
 	{ NULL,	"SET_PULSE_POLE", 			"format: SET_PULSE_POLE [N] [M]",					true,	NULL,CMD_SET_PULSE_POLE},
 	{ NULL,	"SET_PULSE_COUNT", 			"format: SET_PULSE_COUNT [N] [S] [X] [Y]",			true,	NULL,CMD_SET_PULSE_COUNT},
 	{ NULL,	"SET_PULSE_DELAY", 			"format: SET_PULSE_DELAY [N] [M] [X]",				true,	NULL,CMD_SET_PULSE_DELAY},
@@ -140,6 +143,7 @@ static const CliCommandBinding cliStaticBindings_internal[] = {
 	{ NULL,	"GET_SEQUENCE_DELETE", 		"format: GET_SEQUENCE_DELETE",						false,	NULL,CMD_GET_SEQUENCE_DELETE},
 	{ NULL,	"GET_SEQUENCE_CONFIRM", 	"format: GET_SEQUENCE_CONFIRM",						false,	NULL,CMD_GET_SEQUENCE_CONFIRM},
 	{ NULL,	"GET_SEQUENCE_DELAY", 		"format: GET_SEQUENCE_DELAY",						false,	NULL,CMD_GET_SEQUENCE_DELAY},
+	{ NULL,	"GET_SEQUENCE_ALL", 		"format: GET_SEQUENCE_ALL",							false,	NULL,CMD_GET_SEQUENCE_ALL},
 
 	{ NULL,	"GET_PULSE_POLE", 			"format: GET_PULSE_POLE",							false,	NULL,CMD_GET_PULSE_POLE},
 	{ NULL,	"GET_PULSE_COUNT", 			"format: GET_PULSE_COUNT",							false,	NULL,CMD_GET_PULSE_COUNT},
@@ -147,7 +151,7 @@ static const CliCommandBinding cliStaticBindings_internal[] = {
 	{ NULL,	"GET_PULSE_HV", 			"format: GET_PULSE_HV",								false,	NULL,CMD_GET_PULSE_HV},
 	{ NULL,	"GET_PULSE_HV_POS", 		"format: GET_PULSE_HV_POS",							false,	NULL,CMD_GET_PULSE_HV_POS},
 	{ NULL,	"GET_PULSE_HV_NEG", 		"format: GET_PULSE_HV_NEG",							false,	NULL,CMD_GET_PULSE_HV_NEG},
-	{ NULL,	"GET_PULSE_HV", 			"format: GET_PULSE_HV",								false,	NULL,CMD_GET_PULSE_HV},
+	{ NULL,	"GET_PULSE_HV", 			"format: GET_PULSE_HV",								false,	NULL,CMD_GET_PULSE_LV},
 	{ NULL,	"GET_PULSE_LV_POS", 		"format: GET_PULSE_LV_POS",							false,	NULL,CMD_GET_PULSE_LV_POS},
 	{ NULL,	"GET_PULSE_LV_NEG", 		"format: GET_PULSE_LV_NEG",							false,	NULL,CMD_GET_PULSE_LV_NEG},
 	{ NULL,	"GET_PULSE_CONTROL", 		"format: GET_PULSE_CONTROL",						false,	NULL,CMD_GET_PULSE_CONTROL},
@@ -289,8 +293,7 @@ static void CMD_SET_CAP_CONTROL (EmbeddedCli *cli, char *args, void *context){
 
 	fsp_print(3);
 
-	embeddedCliPrint(cli,"\n\r> CMDLINE_OK");
-
+	embeddedCliPrint(cli,"> CMDLINE_OK");
 	return ;
 }
 
@@ -327,7 +330,31 @@ static void CMD_SET_CAP_RELEASE (EmbeddedCli *cli, char *args, void *context){
 	fsp_print(3);
 	embeddedCliPrint(cli,"> CMDLINE_OK");
 	return ;
+}
 
+static void CMD_RESET_CAP_OVV (EmbeddedCli *cli, char *args, void *context){
+	uint8_t argc = embeddedCliGetTokenCount(args);
+
+	if(argc < 2) {
+		embeddedCliPrint(cli,"> CMDLINE_TOO_FEW_ARGS");
+		return;
+	}
+	else if(argc > 2){
+		embeddedCliPrint(cli,"> CMDLINE_TOO_MANY_ARGS");
+		return;
+	}
+
+	uint8_t receive_argm[2];
+	receive_argm[0] = atoi(embeddedCliGetToken(args, 1));
+	receive_argm[1] = atoi(embeddedCliGetToken(args, 2));
+
+	ps_FSP_TX -> CMD = FSP_CMD_RESET_CAP_OVV;
+	ps_FSP_TX -> Payload.reset_ovv_flag.HV_OVV_flag = receive_argm[0];
+	ps_FSP_TX -> Payload.reset_ovv_flag.LV_OVV_flag = receive_argm[1];
+	fsp_print(3);
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return ;
 }
 
 static void CMD_GET_CAP_VOLT (EmbeddedCli *cli, char *args, void *context){
@@ -412,6 +439,23 @@ static void CMD_GET_CAP_STATE (EmbeddedCli *cli, char *args, void *context){
 	return;
 }
 
+static void CMD_GET_CAP_OVV (EmbeddedCli *cli, char *args, void *context){
+	int argc = embeddedCliGetTokenCount(args);
+
+	if(argc != 0){
+		embeddedCliPrint(cli,"> CMDLINE_TOO_MANY_ARGS");
+		return;
+	}
+
+	ps_FSP_TX -> CMD = FSP_CMD_GET_OVV_FLAG;
+	fsp_print(1);
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+
+	return;
+}
+
+/*----------------------CMD FOR MEASURE -----------------------------*/
 
 static void CMD_MEASURE_VOLT (EmbeddedCli *cli, char *args, void *context){
 
@@ -489,7 +533,7 @@ static void	CMD_SET_SEQUENCE_INDEX(EmbeddedCli *cli, char *args, void *context){
 		return;
 	}
 
-	if(user_target_seq_idx > (CMD_sequence_index + 1)){
+	if(user_target_seq_idx > (CMD_sequence_index + 2)){
 		char msg[128];
 		sprintf(msg,"> ERROR YOUR NEXT SEQUENCE INDEX IS: %d, NOT %d\n", total_active_sequences + 1, user_target_seq_idx);
 		UART_Driver_SendString(&XBEE_UART, msg);
@@ -828,27 +872,308 @@ static void	CMD_SET_PULSE_CONTROL(EmbeddedCli *cli, char *args, void *context){
 
 	return;
 }
+static void CMD_GET_SEQUENCE_ALL (EmbeddedCli *cli, char *args, void *context){
+	int argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
+		return;
+	}
+	uint8_t seq_idx = 0;
+	char msg[128];
+
+	for(seq_idx = 0; seq_idx <= CMD_sequence_index; seq_idx++){
+		embeddedCliPrint(cli,"-------------------------------------------------------------");
+		sprintf(msg,"> CURRENT SEQUENCE INDEX: %d", seq_idx+1);
+		embeddedCliPrint(cli, msg);
+
+		sprintf(msg,"> PULSE POS POLE: %d; PULSE NEG POLE: %d", Sequence_List[seq_idx].pos_pole_index + 1, Sequence_List[seq_idx].neg_pole_index + 1);
+		embeddedCliPrint(cli, msg);
+
+		sprintf(msg,"> POS HV PULSE COUNT: %d; NEG HV PULSE COUNT: %d", Sequence_List[seq_idx].hv_pos_count, Sequence_List[seq_idx].hv_neg_count);
+		embeddedCliPrint(cli, msg);
+
+		sprintf(msg,"> POS LV PULSE COUNT: %d; NEG LV PULSE COUNT: %d", Sequence_List[seq_idx].lv_pos_count, Sequence_List[seq_idx].lv_pos_count);
+		embeddedCliPrint(cli, msg);
+
+		sprintf(msg,"> DELAY BETWEEN HV POS AND NEG PULSE: %dms", Sequence_List[seq_idx].hv_delay_ms);
+		embeddedCliPrint(cli, msg);
+
+		sprintf(msg,"> DELAY BETWEEN LV POS AND NEG PULSE: %dms", Sequence_List[seq_idx].lv_delay_ms);
+		embeddedCliPrint(cli, msg);
+
+		sprintf(msg,"> DELAY BETWEEN HV PULSE AND LV PULSE: %dms", Sequence_List[seq_idx].pulse_delay_ms);
+		embeddedCliPrint(cli, msg);
+
+		sprintf(msg, "> HV PULSE POS ON TIME: %dms; HV PULSE POS OFF TIME: %dms",Sequence_List[seq_idx].hv_pos_on_ms, Sequence_List[seq_idx].hv_pos_off_ms);
+		embeddedCliPrint(cli, msg);
+
+		sprintf(msg, "> HV PULSE NEG ON TIME: %dms; HV PULSE NEG OFF TIME: %dms",Sequence_List[seq_idx].hv_neg_on_ms, Sequence_List[seq_idx].hv_neg_off_ms);
+		embeddedCliPrint(cli, msg);
+
+		sprintf(msg, "> LV PULSE POS ON TIME: %dms; LV PULSE POS OFF TIME: %dms",Sequence_List[seq_idx].lv_pos_on_ms, Sequence_List[seq_idx].lv_pos_off_ms);
+		embeddedCliPrint(cli, msg);
+
+		sprintf(msg, "> LV PULSE NEG ON TIME: %dms; LV PULSE NEG OFF TIME: %dms",Sequence_List[seq_idx].lv_neg_on_ms, Sequence_List[seq_idx].lv_neg_off_ms);
+		embeddedCliPrint(cli, msg);
+	}
+}
 
 static void	CMD_GET_SEQUENCE_INDEX(EmbeddedCli *cli, char *args, void *context){
 
+	int argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
+		return;
+	}
 
+	char msg[64];
+	sprintf(msg,"> CURRENT SEQUENCE INDEX: %d", CMD_sequence_index + 1);
+	UART_Driver_SendString(&XBEE_UART, msg);
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;
 }
 
-static void	CMD_GET_SEQUENCE_DELETE (EmbeddedCli *cli, char *args, void *context){}
-static void CMD_GET_SEQUENCE_CONFIRM (EmbeddedCli *cli, char *args, void *context){}
-static void CMD_GET_SEQUENCE_DELAY (EmbeddedCli *cli, char *args, void *context){}
+static void	CMD_GET_SEQUENCE_DELETE (EmbeddedCli *cli, char *args, void *context){
+	return;
+}
 
-static void CMD_GET_PULSE_POLE (EmbeddedCli *cli, char *args, void *context){}
-static void CMD_GET_PULSE_COUNT (EmbeddedCli *cli, char *args, void *context){}
-static void CMD_GET_PULSE_DELAY (EmbeddedCli *cli, char *args, void *context){}
-static void CMD_GET_PULSE_HV (EmbeddedCli *cli, char *args, void *context){}
-static void CMD_GET_PULSE_HV_POS (EmbeddedCli *cli, char *args, void *context){}
-static void CMD_GET_PULSE_HV_NEG (EmbeddedCli *cli, char *args, void *context){}
-static void CMD_GET_PULSE_LV (EmbeddedCli *cli, char *args, void *context){}
-static void CMD_GET_PULSE_LV_POS (EmbeddedCli *cli, char *args, void *context){}
-static void CMD_GET_PULSE_LV_NEG (EmbeddedCli *cli, char *args, void *context){}
-static void CMD_GET_PULSE_CONTROL (EmbeddedCli *cli, char *args, void *context){}
-static void CMD_GET_PULSE_ALL (EmbeddedCli *cli, char *args, void *context){}
+static void CMD_GET_SEQUENCE_CONFIRM (EmbeddedCli *cli, char *args, void *context){
+	return;
+}
+
+static void CMD_GET_SEQUENCE_DELAY (EmbeddedCli *cli, char *args, void *context){
+	int argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
+		return;
+	}
+
+	char msg[64];
+	sprintf(msg,"> CURRENT SEQUENCE DELAY: %d", Sequence_List[CMD_sequence_index].sequence_delay_ms);
+	UART_Driver_SendString(&XBEE_UART, msg);
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;
+}
+
+
+static void CMD_GET_PULSE_POLE (EmbeddedCli *cli, char *args, void *context){
+	int argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
+		return;
+	}
+
+	char msg[64];
+	sprintf(msg,"> PULSE POS POLE: %d; PULSE NEG POLE: %d", Sequence_List[CMD_sequence_index].pos_pole_index + 1, Sequence_List[CMD_sequence_index].neg_pole_index + 1);
+	embeddedCliPrint(cli, msg);
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;
+}
+
+static void CMD_GET_PULSE_COUNT (EmbeddedCli *cli, char *args, void *context){
+	int argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
+		return;
+	}
+
+	char msg[64];
+	sprintf(msg,"> POS HV PULSE COUNT: %d; NEG HV PULSE COUNT: %d", Sequence_List[CMD_sequence_index].hv_pos_count, Sequence_List[CMD_sequence_index].hv_neg_count);
+	embeddedCliPrint(cli, msg);
+
+	sprintf(msg,"> POS LV PULSE COUNT: %d; NEG LV PULSE COUNT: %d", Sequence_List[CMD_sequence_index].lv_pos_count, Sequence_List[CMD_sequence_index].lv_pos_count);
+	embeddedCliPrint(cli, msg);
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;
+}
+
+static void CMD_GET_PULSE_DELAY (EmbeddedCli *cli, char *args, void *context){
+	int argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
+		return;
+	}
+
+	char msg[64];
+	sprintf(msg,"> DELAY BETWEEN HV POS AND NEG PULSE: %dms", Sequence_List[CMD_sequence_index].hv_delay_ms);
+	embeddedCliPrint(cli, msg);
+
+	sprintf(msg,"> DELAY BETWEEN LV POS AND NEG PULSE: %dms", Sequence_List[CMD_sequence_index].lv_delay_ms);
+	embeddedCliPrint(cli, msg);
+
+	sprintf(msg,"> DELAY BETWEEN HV PULSE AND LV PULSE: %dms", Sequence_List[CMD_sequence_index].pulse_delay_ms);
+	embeddedCliPrint(cli, msg);
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;
+}
+
+static void CMD_GET_PULSE_HV (EmbeddedCli *cli, char *args, void *context){
+	int argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
+		return;
+	}
+	char msg[64];
+	sprintf(msg, "> HV PULSE POS ON TIME: %dms; HV PULSE POS OFF TIME: %dms",Sequence_List[CMD_sequence_index].hv_pos_on_ms, Sequence_List[CMD_sequence_index].hv_pos_off_ms);
+	embeddedCliPrint(cli, msg);
+
+	sprintf(msg, "> HV PULSE NEG ON TIME: %dms; HV PULSE NEG OFF TIME: %dms",Sequence_List[CMD_sequence_index].hv_neg_on_ms, Sequence_List[CMD_sequence_index].hv_neg_off_ms);
+	embeddedCliPrint(cli, msg);
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;	
+}
+
+static void CMD_GET_PULSE_HV_POS (EmbeddedCli *cli, char *args, void *context){
+	int argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
+		return;
+	}
+
+	char msg[64];
+	sprintf(msg, "> HV PULSE POS ON TIME: %dms; HV PULSE POS OFF TIME: %dms",Sequence_List[CMD_sequence_index].hv_pos_on_ms, Sequence_List[CMD_sequence_index].hv_pos_off_ms);
+	embeddedCliPrint(cli, msg);
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;
+}
+
+static void CMD_GET_PULSE_HV_NEG (EmbeddedCli *cli, char *args, void *context){
+		int argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
+		return;
+	}
+
+	char msg[64];
+	sprintf(msg, "> HV PULSE NEG ON TIME: %dms; HV PULSE NEG OFF TIME: %dms",Sequence_List[CMD_sequence_index].hv_neg_on_ms, Sequence_List[CMD_sequence_index].hv_neg_off_ms);
+	embeddedCliPrint(cli, msg);
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;
+}
+
+static void CMD_GET_PULSE_LV (EmbeddedCli *cli, char *args, void *context){
+	int argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
+		return;
+	}
+	char msg[64];
+	sprintf(msg, "> LV PULSE POS ON TIME: %dms; LV PULSE POS OFF TIME: %dms",Sequence_List[CMD_sequence_index].lv_pos_on_ms, Sequence_List[CMD_sequence_index].lv_pos_off_ms);
+	embeddedCliPrint(cli, msg);
+
+	sprintf(msg, "> LV PULSE NEG ON TIME: %dms; LV PULSE NEG OFF TIME: %dms",Sequence_List[CMD_sequence_index].lv_neg_on_ms, Sequence_List[CMD_sequence_index].lv_neg_off_ms);
+	embeddedCliPrint(cli, msg);
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;	
+}
+
+static void CMD_GET_PULSE_LV_POS (EmbeddedCli *cli, char *args, void *context){
+	int argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
+		return;
+	}
+	char msg[64];
+	sprintf(msg, "> LV PULSE POS ON TIME: %dms; LV PULSE POS OFF TIME: %dms",Sequence_List[CMD_sequence_index].lv_pos_on_ms, Sequence_List[CMD_sequence_index].lv_pos_off_ms);
+	UART_Driver_SendString(&XBEE_UART, msg);
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;	
+}
+
+static void CMD_GET_PULSE_LV_NEG (EmbeddedCli *cli, char *args, void *context){
+	int argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
+		return;
+	}
+	char msg[64];
+	sprintf(msg, "> LV PULSE NEG ON TIME: %dms; LV PULSE NEG OFF TIME: %dms",Sequence_List[CMD_sequence_index].lv_neg_on_ms, Sequence_List[CMD_sequence_index].lv_neg_off_ms);
+	embeddedCliPrint(cli, msg);
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;	
+}
+
+static void CMD_GET_PULSE_CONTROL (EmbeddedCli *cli, char *args, void *context){
+	int argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
+		return;
+	}
+
+	if(is_h_bridge_enable == true){
+		embeddedCliPrint(cli,"> H BRIDGE IS PULSING");
+	}
+	else if(is_h_bridge_enable == false){
+		embeddedCliPrint(cli,"> H BRIDGE IS NOT PULSING");
+	
+	}
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;	
+}
+
+static void CMD_GET_PULSE_ALL (EmbeddedCli *cli, char *args, void *context){
+
+	int argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
+		return;
+	}
+	char msg[128];
+
+	embeddedCliPrint(cli,"-------------------------------------------------------------");
+	sprintf(msg,"> CURRENT SEQUENCE INDEX: %d", CMD_sequence_index + 1);
+	embeddedCliPrint(cli, msg);
+
+	sprintf(msg,"> PULSE POS POLE: %d; PULSE NEG POLE: %d", Sequence_List[CMD_sequence_index].pos_pole_index + 1, Sequence_List[CMD_sequence_index].neg_pole_index + 1);
+	embeddedCliPrint(cli, msg);
+
+	sprintf(msg,"> POS HV PULSE COUNT: %d; NEG HV PULSE COUNT: %d", Sequence_List[CMD_sequence_index].hv_pos_count, Sequence_List[CMD_sequence_index].hv_neg_count);
+	embeddedCliPrint(cli, msg);
+
+	sprintf(msg,"> POS LV PULSE COUNT: %d; NEG LV PULSE COUNT: %d", Sequence_List[CMD_sequence_index].lv_pos_count, Sequence_List[CMD_sequence_index].lv_pos_count);
+	embeddedCliPrint(cli, msg);
+
+	sprintf(msg,"> DELAY BETWEEN HV POS AND NEG PULSE: %dms", Sequence_List[CMD_sequence_index].hv_delay_ms);
+	embeddedCliPrint(cli, msg);
+
+	sprintf(msg,"> DELAY BETWEEN LV POS AND NEG PULSE: %dms", Sequence_List[CMD_sequence_index].lv_delay_ms);
+	embeddedCliPrint(cli, msg);
+
+	sprintf(msg,"> DELAY BETWEEN HV PULSE AND LV PULSE: %dms", Sequence_List[CMD_sequence_index].pulse_delay_ms);
+	embeddedCliPrint(cli, msg);
+
+	sprintf(msg, "> HV PULSE POS ON TIME: %dms; HV PULSE POS OFF TIME: %dms",Sequence_List[CMD_sequence_index].hv_pos_on_ms, Sequence_List[CMD_sequence_index].hv_pos_off_ms);
+	embeddedCliPrint(cli, msg);
+
+	sprintf(msg, "> HV PULSE NEG ON TIME: %dms; HV PULSE NEG OFF TIME: %dms",Sequence_List[CMD_sequence_index].hv_neg_on_ms, Sequence_List[CMD_sequence_index].hv_neg_off_ms);
+	embeddedCliPrint(cli, msg);
+
+	sprintf(msg, "> LV PULSE POS ON TIME: %dms; LV PULSE POS OFF TIME: %dms",Sequence_List[CMD_sequence_index].lv_pos_on_ms, Sequence_List[CMD_sequence_index].lv_pos_off_ms);
+	embeddedCliPrint(cli, msg);
+
+	sprintf(msg, "> LV PULSE NEG ON TIME: %dms; LV PULSE NEG OFF TIME: %dms",Sequence_List[CMD_sequence_index].lv_neg_on_ms, Sequence_List[CMD_sequence_index].lv_neg_off_ms);
+	embeddedCliPrint(cli, msg);
+
+	if(is_h_bridge_enable == true){
+		embeddedCliPrint(cli,"> H BRIDGE IS PULSING");
+	}
+	else if(is_h_bridge_enable == false){
+		embeddedCliPrint(cli,"> H BRIDGE IS NOT PULSING");
+	}
+
+	return;	
+}
 
 
 
