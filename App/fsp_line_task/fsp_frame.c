@@ -175,7 +175,7 @@ uint8_t FSP_Line_Process(void)
 								| ps_FSP_RX -> Payload.measure_volt.LV_raw_volt_low;
 
 		if(is_measure_volt_notify_enable == true){
-			sprintf(msg, "\r\nHV cap: %dV, LV cap: %dV", hv_raw_vol, lv_raw_vol);
+			sprintf(msg, "HV cap: %dV, LV cap: %dV\n\r> ", hv_raw_vol, lv_raw_vol);
 			UART_Driver_SendString(&XBEE_UART, msg);
 
 			is_measure_volt_notify_enable = false;
@@ -187,6 +187,28 @@ uint8_t FSP_Line_Process(void)
 		}
 
 		break;
+	}
+	case FSP_CMD_GET_OVV_FLAG:
+	{
+		char msg[64];
+		bool HV_OVV_Flag = ps_FSP_RX -> Payload.get_ovv_flag.HV_OVV_flag;
+		bool LV_OVV_Flag = ps_FSP_RX -> Payload.get_ovv_flag.LV_OVV_flag;
+
+		if(HV_OVV_Flag == true){
+			UART_Driver_SendString(&XBEE_UART, "HV CAP IS OVER VOLTAGE\r\n> ");
+		}
+		else if(HV_OVV_Flag == false){
+			UART_Driver_SendString(&XBEE_UART, "HV CAP VOLTAGE OK\r\n> ");
+		}
+
+		if(LV_OVV_Flag == true){
+			UART_Driver_SendString(&XBEE_UART, "LV CAP IS OVER VOLTAGE\r\n> ");
+		}
+		else if(LV_OVV_Flag == false){
+			UART_Driver_SendString(&XBEE_UART, "LV CAP VOLTAGE OK\r\n> ");
+		}
+		break;
+
 	}
 	default:
 		return 0;

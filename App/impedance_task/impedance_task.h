@@ -14,6 +14,10 @@
 
 #include "stm32f4xx_ll_gpio.h"
 
+#define MESURE_IMPEDANCE_RANGE_MAX 5
+
+
+
 typedef enum
 {
     IMPEDANCE_TASK_STATE_IDLE = 0,

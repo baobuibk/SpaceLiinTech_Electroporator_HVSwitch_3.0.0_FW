@@ -22,6 +22,7 @@ typedef enum _FSP_CMD_typedef_
 	FSP_CMD_SET_CAP_VOLT_LV,
 	FSP_CMD_SET_CAP_CONTROL,
 	FSP_CMD_SET_CAP_RELEASE,
+	FSP_CMD_RESET_CAP_OVV,
 
 	FSP_CMD_GET_CAP_STATE,
 
@@ -76,6 +77,13 @@ typedef struct _SET_DISCHARGE_ {
 	uint8_t		LV_cmd_discharge;
 
 }SET_DISCHARGE;
+
+typedef struct _RESET_OVV_FLAG_ {
+
+	uint8_t		HV_OVV_flag;
+	uint8_t		LV_OVV_flag;
+
+}RESET_OVV_FLAG;
 
 typedef struct _GET_CAP_STATE_{
 
@@ -170,6 +178,7 @@ typedef union _FSP_Payload_Frame_typedef_
 	SET_VOLT_LV				set_volt_lv;
 	SET_CHARGE				set_charge;
 	SET_DISCHARGE			set_discharge;
+	RESET_OVV_FLAG			reset_ovv_flag;
 
 	GET_CAP_STATE			get_cap_state;
 	GET_OVV_FLAG			get_ovv_flag;

@@ -24,18 +24,18 @@ tSchedulerTask 	g_psSchedulerTable[SCHEDULER_TASK_COUNT] =
 
 void App_Main(void)
 {
-    CMD_Line_Task_Init();
-    VS_Init();
-    H_Bridge_Task_Init();
-    FSP_Line_Task_Init();
-    VOM_Task_Init();
+   CMD_Line_Task_Init();
+   VS_Init();
+   H_Bridge_Task_Init();
+   FSP_Line_Task_Init();
+   VOM_Task_Init();
 
-    SchedulerInit(10000);
+   SchedulerInit(10000);
 
     while (1)
     {
     	test++;
-        SchedulerRun();
+       SchedulerRun();
     }
 }
 

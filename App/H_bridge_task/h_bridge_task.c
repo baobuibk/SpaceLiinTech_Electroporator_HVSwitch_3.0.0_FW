@@ -149,6 +149,7 @@ void H_Bridge_Task(void *) {
 
             break;
         }
+//Kiểm tra lại TIM1 và TIM8 đã disable hoàn toàn hay chưa
         case HB_TASK_PULSING: {
             if (HB_Is_Phase_Done() == true)
             {
