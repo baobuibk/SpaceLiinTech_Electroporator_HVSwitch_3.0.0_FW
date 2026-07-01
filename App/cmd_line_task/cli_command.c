@@ -98,6 +98,23 @@ static void CMD_GET_PULSE_LV_POS (EmbeddedCli *cli, char *args, void *context);
 static void CMD_GET_PULSE_LV_NEG (EmbeddedCli *cli, char *args, void *context);
 static void CMD_GET_PULSE_CONTROL (EmbeddedCli *cli, char *args, void *context);
 static void CMD_GET_PULSE_ALL (EmbeddedCli *cli, char *args, void *context);
+
+/*----------------------CMD FOR READ SENSOR-----------------------------*/
+static void CMD_GET_SENSOR_GYRO (EmbeddedCli *cli, char *args, void *context);
+static void CMD_GET_SENSOR_ACCEL (EmbeddedCli *cli, char *args, void *context);
+static void CMD_GET_SENSOR_LSM6DSOX (EmbeddedCli *cli, char *args, void *context);
+
+static void CMD_GET_SENSOR_TEMP (EmbeddedCli *cli, char *args, void *context);
+static void CMD_GET_SENSOR_PRESSURE (EmbeddedCli *cli, char *args, void *context);
+static void CMD_GET_SENSOR_ALTITUDE (EmbeddedCli *cli, char *args, void *context);
+static void CMD_GET_SENSOR_BMP390 (EmbeddedCli *cli, char *args, void *context);
+
+static void CMD_SET_SENSOR_H3LIS_FS (EmbeddedCli *cli, char *args, void *context);
+static void CMD_GET_SENSOR_H3LIS_VALUE (EmbeddedCli *cli, char *args, void *context);
+static void CMD_GET_SENSOR_H3LIS_FS (EmbeddedCli *cli, char *args, void *context);
+
+
+
 /*************************************************
  *                 Command  Array                *
  *************************************************/
@@ -156,6 +173,17 @@ static const CliCommandBinding cliStaticBindings_internal[] = {
 	{ NULL,	"GET_PULSE_LV_NEG", 		"format: GET_PULSE_LV_NEG",							false,	NULL,CMD_GET_PULSE_LV_NEG},
 	{ NULL,	"GET_PULSE_CONTROL", 		"format: GET_PULSE_CONTROL",						false,	NULL,CMD_GET_PULSE_CONTROL},
 	{ NULL,	"GET_PULSE_ALL", 			"format: GET_PULSE_ALL",							false,	NULL,CMD_GET_PULSE_ALL},
+
+	{ NULL,	"GET_SENSOR_GYRO", 			"format: GET_SENSOR_GYRO",							false,	NULL,CMD_GET_SENSOR_GYRO},
+	{ NULL,	"GET_SENSOR_ACCEL", 		"format: GET_SENSOR_ACCEL",							false,	NULL,CMD_GET_SENSOR_ACCEL},
+	{ NULL,	"GET_SENSOR_LSM6DSOX", 		"format: GET_SENSOR_LSM6DSOX",						false,	NULL,CMD_GET_SENSOR_LSM6DSOX},
+	{ NULL,	"GET_SENSOR_TEMP", 			"format: GET_SENSOR_TEMP",							false,	NULL,CMD_GET_SENSOR_TEMP},
+	{ NULL,	"GET_SENSOR_PRESSURE", 		"format: GET_SENSOR_PRESSURE",						false,	NULL,CMD_GET_SENSOR_PRESSURE},
+	{ NULL,	"GET_SENSOR_ALTITUDE", 		"format: GET_SENSOR_ALTITUDE",						false,	NULL,CMD_GET_SENSOR_ALTITUDE},
+	{ NULL,	"GET_SENSOR_BMP390", 		"format: GET_SENSOR_BMP390",						false,	NULL,CMD_GET_SENSOR_BMP390},
+	{ NULL,	"GET_SENSOR_H3LIS_VALUE", 	"format: GET_SENSOR_H3LIS_VALUE",					false,	NULL,CMD_GET_SENSOR_H3LIS_VALUE},
+	{ NULL,	"SET_SENSOR_H3LIS_FS", 		"format: SET_SENSOR_H3LIS_FS [N]",					true,	NULL,CMD_SET_SENSOR_H3LIS_FS},
+	{ NULL,	"GET_SENSOR_H3LIS_FS", 		"format: GET_SENSOR_H3LIS_FS",						false,	NULL,CMD_GET_SENSOR_H3LIS_FS},
 };
 
 /*************************************************
@@ -483,7 +511,7 @@ static void CMD_MEASURE_IMPEDANCE (EmbeddedCli *cli, char *args, void *context){
 		return;
 	}
 
-	int argc = embeddedCliGetTokenCount(args);
+	uint8_t argc = embeddedCliGetTokenCount(args);
 
 	if (argc < 2) {
 		embeddedCliPrint(cli, "> CMDLINE_TOO_FEW_ARGS");
@@ -495,18 +523,19 @@ static void CMD_MEASURE_IMPEDANCE (EmbeddedCli *cli, char *args, void *context){
 	}
 
 	uint8_t receive_argm[2];
-
 	receive_argm[0] = atoi(embeddedCliGetToken(args, 1));
 	receive_argm[1] = atoi(embeddedCliGetToken(args, 2));
 
-	impedance_select_pole.pos_pole = ChannelMapping[receive_argm[0] - 1];
-	impedance_select_pole.neg_pole = ChannelMapping[receive_argm[1] - 1];
+	uint8_t pos_pole = ChannelMapping[receive_argm[0] - 1];
+	uint8_t neg_pole = ChannelMapping[receive_argm[1] - 1];
 
-	impedance_task_state = IMPEDANCE_TASK_STATE_SET_CHARGE;
-	SchedulerTaskEnable(IMPEDANCE_TASK, 1);
+	uint16_t impedance_val =  impedance_measure_manual(pos_pole, neg_pole);
+
+	char msg[64];
+	sprintf(msg, "> IMPEDANCE IS %d Ohm", impedance_val);
+	embeddedCliPrint(cli,msg);
 
 	embeddedCliPrint(cli,"> CMDLINE_OK");
-
 	return;
 }
 
@@ -1173,6 +1202,125 @@ static void CMD_GET_PULSE_ALL (EmbeddedCli *cli, char *args, void *context){
 	}
 
 	return;	
+}
+
+
+/*----------------------CMD FOR READ SENSOR-----------------------------*/
+static void CMD_GET_SENSOR_GYRO (EmbeddedCli *cli, char *args, void *context){
+	uint8_t argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
+		return;
+	}
+
+	ps_FSP_TX -> CMD = FSP_CMD_GET_SENSOR_GYRO;
+	fsp_print(1);
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;	
+}
+static void CMD_GET_SENSOR_ACCEL (EmbeddedCli *cli, char *args, void *context){
+	uint8_t argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
+		return;
+	}
+
+	ps_FSP_TX -> CMD = FSP_CMD_GET_SENSOR_ACCEL;
+	fsp_print(1);
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;	
+}
+
+static void CMD_GET_SENSOR_LSM6DSOX (EmbeddedCli *cli, char *args, void *context){
+	uint8_t argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
+		return;
+	}
+
+	ps_FSP_TX -> CMD = FSP_CMD_GET_SENSOR_LSM6DSOX;
+	fsp_print(1);
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;	
+}
+
+static void CMD_GET_SENSOR_TEMP (EmbeddedCli *cli, char *args, void *context){
+	uint8_t argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
+		return;
+	}
+
+	ps_FSP_TX -> CMD = FSP_CMD_GET_SENSOR_TEMP;
+	fsp_print(1);
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;	
+}
+
+static void CMD_GET_SENSOR_PRESSURE (EmbeddedCli *cli, char *args, void *context){
+	uint8_t argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
+		return;
+	}
+
+	ps_FSP_TX -> CMD = FSP_CMD_GET_SENSOR_PRESSURE;
+	fsp_print(1);
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;	
+}
+
+static void CMD_GET_SENSOR_ALTITUDE (EmbeddedCli *cli, char *args, void *context){
+	uint8_t argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
+		return;
+	}
+
+	ps_FSP_TX -> CMD = FSP_CMD_GET_SENSOR_ALTITUDE;
+	fsp_print(1);
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;	
+}
+
+static void CMD_GET_SENSOR_BMP390 (EmbeddedCli *cli, char *args, void *context){
+	uint8_t argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
+		return;
+	}
+
+	ps_FSP_TX -> CMD = FSP_CMD_GET_SENSOR_BMP390;
+	fsp_print(1);
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;	
+}
+
+static void CMD_GET_SENSOR_H3LIS_VALUE (EmbeddedCli *cli, char *args, void *context){
+	uint8_t argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
+		return;
+	}
+
+	ps_FSP_TX -> CMD = FSP_CMD_GET_SENSOR_H3LIS331DL;
+	fsp_print(1);
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;	
+}
+static void CMD_SET_SENSOR_H3LIS_FS (EmbeddedCli *cli, char *args, void *context){
+}
+
+static void CMD_GET_SENSOR_H3LIS_FS (EmbeddedCli *cli, char *args, void *context){
+
 }
 
 

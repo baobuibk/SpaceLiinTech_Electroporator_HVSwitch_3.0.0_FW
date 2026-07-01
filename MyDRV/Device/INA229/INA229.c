@@ -99,6 +99,39 @@ void INA229_Calibrate(ina229_t* dev, double r_shunt_ohms, double max_current_amp
  * MEASUREMENT GETTERS
  * ==================================================================== */
 
+void INA229_Set_ShuntOverVoltage(ina229_t* dev, double r_shunt_ohms, double current_amps) {
+    double voltage_v = current_amps * r_shunt_ohms;
+
+    int16_t limit_val = (int16_t)(voltage_v / INA229_VSHUNT_LSB);
+
+    INA229_WriteReg16(dev, INA229_REG_SOVL, (uint16_t)limit_val);
+}
+
+void INA229_Set_ShuntUnderVoltage(ina229_t* dev, double r_shunt_ohms, double current_amps) {
+
+    double voltage_v = current_amps * r_shunt_ohms;
+
+    int16_t limit_val = (int16_t)(voltage_v / INA229_VSHUNT_LSB);
+
+    INA229_WriteReg16(dev, INA229_REG_SUVL, (uint16_t)limit_val);
+}
+
+void INA229_Set_BusOverVoltage(ina229_t* dev, double voltage_raw) {
+
+	double voltage_v = voltage_raw * 0.03;
+    int16_t limit_val = (int16_t)(voltage_v / INA229_VBUS_LSB);
+
+    INA229_WriteReg16(dev, INA229_REG_BOVL, (uint16_t)limit_val);
+}
+
+void INA229_Set_BusUnderVoltage(ina229_t* dev, double voltage_raw) {
+
+	double voltage_v = voltage_raw * 0.03;
+    int16_t limit_val = (int16_t)(voltage_v / INA229_VBUS_LSB);
+
+    INA229_WriteReg16(dev, INA229_REG_BUVL, (uint16_t)limit_val);
+}
+
 double INA229_GetBusVoltage(ina229_t* dev) {
     uint32_t val24 = INA229_ReadReg24(dev, INA229_REG_VBUS);
     
