@@ -42,9 +42,13 @@ void VOM_Task_Init(void){
     INA229_Init(&vom_ina229_dev, &vom_spi);
     
     INA229_WriteReg16(&vom_ina229_dev, INA229_REG_CONFIG, 0x8000);
-  
-  
     INA229_Calibrate(&vom_ina229_dev, SHUNT_RESISTOR_OHMS, MAX_EXPECTED_AMPS);
+
+    INA229_Set_ShuntOverVoltage(&vom_ina229_dev, SHUNT_RESISTOR_OHMS, 5.0);
+    INA229_Set_ShuntUnderVoltage(&vom_ina229_dev, SHUNT_RESISTOR_OHMS, -5.0);
+
+    INA229_Set_BusOverVoltage(&vom_ina229_dev, 310);
+    INA229_Set_BusUnderVoltage(&vom_ina229_dev, 0);
 
 }
 

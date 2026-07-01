@@ -16,9 +16,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <math.h>
 
 #include "app.h"
 
+static void float_to_string(float num, char *str, uint8_t precision) ;
 static void fsp_print(uint8_t packet_length);
 
 
@@ -190,7 +192,7 @@ uint8_t FSP_Line_Process(void)
 	}
 	case FSP_CMD_GET_OVV_FLAG:
 	{
-		char msg[64];
+
 		bool HV_OVV_Flag = ps_FSP_RX -> Payload.get_ovv_flag.HV_OVV_flag;
 		bool LV_OVV_Flag = ps_FSP_RX -> Payload.get_ovv_flag.LV_OVV_flag;
 
@@ -210,12 +212,332 @@ uint8_t FSP_Line_Process(void)
 		break;
 
 	}
+	case FSP_CMD_GET_SENSOR_GYRO:
+	{
+
+        int32_t read_gyro_x = (int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Gyro_x[0] |
+                              ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Gyro_x[1] << 8)  |
+                              ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Gyro_x[2] << 16) |
+                              ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Gyro_x[3] << 24);
+
+        int32_t read_gyro_y = (int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Gyro_y[0] |
+                              ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Gyro_y[1] << 8)  |
+                              ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Gyro_y[2] << 16) |
+                              ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Gyro_y[3] << 24);
+
+        int32_t read_gyro_z = (int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Gyro_z[0] |
+                              ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Gyro_z[1] << 8)  |
+                              ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Gyro_z[2] << 16) |
+                              ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Gyro_z[3] << 24);
+        
+        float gyro_x = (float)read_gyro_x / 1000.0f;
+        float gyro_y = (float)read_gyro_y / 1000.0f;
+        float gyro_z = (float)read_gyro_z / 1000.0f;
+
+        char msg[128];
+        char gyro_x_str[16];
+        char gyro_y_str[16];
+        char gyro_z_str[16];
+
+        float_to_string(gyro_x, gyro_x_str, 2);
+        float_to_string(gyro_y, gyro_y_str, 2);
+        float_to_string(gyro_z, gyro_z_str, 2);
+
+        sprintf(msg, "GYRO x: %s dps; GYRO y: %s dps; GYRO z: %s dps\n\r> ", gyro_x_str, gyro_y_str, gyro_z_str);
+        UART_Driver_SendString(&XBEE_UART, msg);
+    
+        break;
+	}
+	case FSP_CMD_GET_SENSOR_ACCEL:
+	{
+        int32_t read_accel_x = (int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Accel_x[0] |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Accel_x[1] << 8)  |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Accel_x[2] << 16) |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Accel_x[3] << 24);
+
+        int32_t read_accel_y = (int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Accel_y[0] |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Accel_y[1] << 8)  |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Accel_y[2] << 16) |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Accel_y[3] << 24);
+
+        int32_t read_accel_z = (int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Accel_z[0] |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Accel_z[1] << 8)  |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Accel_z[2] << 16) |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Accel_z[3] << 24);
+        
+
+        float accel_x = (float)read_accel_x / 1000.0f;
+        float accel_y = (float)read_accel_y / 1000.0f;
+        float accel_z = (float)read_accel_z / 1000.0f;
+
+        char msg[128];
+        char accel_x_str[16];
+        char accel_y_str[16];
+        char accel_z_str[16];
+
+        float_to_string(accel_x, accel_x_str, 2);
+        float_to_string(accel_y, accel_y_str, 2);
+        float_to_string(accel_z, accel_z_str, 2);
+
+        sprintf(msg, "ACCEL x: %s mg; ACCEL y: %s mg; ACCEL z: %s mg\n\r> ", accel_x_str, accel_y_str, accel_z_str);
+        UART_Driver_SendString(&XBEE_UART, msg);
+
+        break;
+	}
+	case FSP_CMD_GET_SENSOR_LSM6DSOX:
+	{
+        int32_t read_gyro_x = (int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Gyro_x[0] |
+                              ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Gyro_x[1] << 8)  |
+                              ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Gyro_x[2] << 16) |
+                              ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Gyro_x[3] << 24);
+
+        int32_t read_gyro_y = (int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Gyro_y[0] |
+                              ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Gyro_y[1] << 8)  |
+                              ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Gyro_y[2] << 16) |
+                              ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Gyro_y[3] << 24);
+
+        int32_t read_gyro_z = (int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Gyro_z[0] |
+                              ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Gyro_z[1] << 8)  |
+                              ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Gyro_z[2] << 16) |
+                              ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Gyro_z[3] << 24);
+
+        int32_t read_accel_x = (int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Accel_x[0] |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Accel_x[1] << 8)  |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Accel_x[2] << 16) |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Accel_x[3] << 24);
+
+        int32_t read_accel_y = (int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Accel_y[0] |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Accel_y[1] << 8)  |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Accel_y[2] << 16) |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Accel_y[3] << 24);
+
+        int32_t read_accel_z = (int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Accel_z[0] |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Accel_z[1] << 8)  |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Accel_z[2] << 16) |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_lsm6dsox.Accel_z[3] << 24);
+
+        float gyro_x = (float)read_gyro_x / 1000.0f;
+        float gyro_y = (float)read_gyro_y / 1000.0f;
+        float gyro_z = (float)read_gyro_z / 1000.0f;
+        float accel_x = (float)read_accel_x / 1000.0f;
+        float accel_y = (float)read_accel_y / 1000.0f;
+        float accel_z = (float)read_accel_z / 1000.0f;
+
+		char msg[128];
+        char gyro_x_str[16];
+        char gyro_y_str[16];
+        char gyro_z_str[16];
+
+        float_to_string(gyro_x, gyro_x_str, 2);
+        float_to_string(gyro_y, gyro_y_str, 2);
+        float_to_string(gyro_z, gyro_z_str, 2);
+
+        sprintf(msg, "GYRO x: %s dps; GYRO y: %s dps; GYRO z: %s dps\n\r> ", gyro_x_str, gyro_y_str, gyro_z_str);
+        UART_Driver_SendString(&XBEE_UART, msg);
+
+		char accel_x_str[16];
+        char accel_y_str[16];
+        char accel_z_str[16];
+
+        float_to_string(accel_x, accel_x_str, 2);
+        float_to_string(accel_y, accel_y_str, 2);
+        float_to_string(accel_z, accel_z_str, 2);
+
+        sprintf(msg, "ACCEL x: %s mg; ACCEL y: %s mg; ACCEL z: %s mg\n\r> ", accel_x_str, accel_y_str, accel_z_str);
+        UART_Driver_SendString(&XBEE_UART, msg);
+
+		break;
+	}
+	case FSP_CMD_GET_SENSOR_TEMP:
+	{
+        int32_t read_temp = (int32_t)ps_FSP_RX->Payload.get_sensor_bmp390.Temp[0] |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_bmp390.Temp[1] << 8)  |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_bmp390.Temp[2] << 16) |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_bmp390.Temp[3] << 24);
+
+
+        float temp = (float)read_temp / 1000.0f;
+
+        char msg[128];
+        char temp_str[16];
+
+        float_to_string(temp, temp_str, 2);
+
+        sprintf(msg, "TEMP: %s C\n\r> ", temp_str);
+        UART_Driver_SendString(&XBEE_UART, msg);
+
+		break;
+
+	}
+	case FSP_CMD_GET_SENSOR_PRESSURE:
+	{
+        int32_t read_press = (int32_t)ps_FSP_RX->Payload.get_sensor_bmp390.Pressure[0] |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_bmp390.Pressure[1] << 8)  |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_bmp390.Pressure[2] << 16) |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_bmp390.Pressure[3] << 24);
+
+        float press = (float)read_press / 1000.0f;
+
+        char msg[128];
+        char press_str[16];
+
+        float_to_string(press, press_str, 2);
+
+        sprintf(msg, "PRESS: %s Pa "
+        		""
+        		"\n\r> ", press_str);
+        UART_Driver_SendString(&XBEE_UART, msg);
+
+		break;
+	}
+	case FSP_CMD_GET_SENSOR_ALTITUDE:
+	{
+        int32_t read_altitude = (int32_t)ps_FSP_RX->Payload.get_sensor_bmp390.Altitude[0] |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_bmp390.Altitude[1] << 8)  |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_bmp390.Altitude[2] << 16) |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_bmp390.Altitude[3] << 24);
+
+        float altitude = (float)read_altitude / 1000.0f;
+
+        char msg[128];
+        char altitude_str[16];
+        float_to_string(altitude, altitude_str, 2);
+
+        sprintf(msg, "ALT: %s m\n\r> ", altitude_str);
+        UART_Driver_SendString(&XBEE_UART, msg);
+
+		break;
+
+	}
+	case FSP_CMD_GET_SENSOR_BMP390:
+	{
+        int32_t read_temp = (int32_t)ps_FSP_RX->Payload.get_sensor_bmp390.Temp[0] |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_bmp390.Temp[1] << 8)  |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_bmp390.Temp[2] << 16) |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_bmp390.Temp[3] << 24);
+
+        int32_t read_press = (int32_t)ps_FSP_RX->Payload.get_sensor_bmp390.Pressure[0] |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_bmp390.Pressure[1] << 8)  |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_bmp390.Pressure[2] << 16) |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_bmp390.Pressure[3] << 24);
+
+        int32_t read_altitude = (int32_t)ps_FSP_RX->Payload.get_sensor_bmp390.Altitude[0] |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_bmp390.Altitude[1] << 8)  |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_bmp390.Altitude[2] << 16) |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_bmp390.Altitude[3] << 24);
+
+
+        float temp = (float)read_temp / 1000.0f;
+        float press = (float)read_press / 1000.0f;
+        float altitude = (float)read_altitude / 1000.0f;
+
+        char msg[128];
+        char temp_str[16];
+        char press_str[16];
+        char altitude_str[16];
+
+        float_to_string(temp, temp_str, 2);
+        float_to_string(press, press_str, 2);
+        float_to_string(altitude, altitude_str, 2);
+
+        sprintf(msg, "TEMP: %s C | PRESS: %s Pa | ALT: %s m\n\r> ", temp_str, press_str, altitude_str);
+        UART_Driver_SendString(&XBEE_UART, msg);
+
+		break;
+	}
+	case FSP_CMD_GET_SENSOR_H3LIS331DL:
+	{
+        int32_t read_accel_x = (int32_t)ps_FSP_RX->Payload.get_sensor_h3lis331dl.Accel_x[0] |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_h3lis331dl.Accel_x[1] << 8)  |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_h3lis331dl.Accel_x[2] << 16) |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_h3lis331dl.Accel_x[3] << 24);
+
+        int32_t read_accel_y = (int32_t)ps_FSP_RX->Payload.get_sensor_h3lis331dl.Accel_y[0] |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_h3lis331dl.Accel_y[1] << 8)  |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_h3lis331dl.Accel_y[2] << 16) |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_h3lis331dl.Accel_y[3] << 24);
+
+        int32_t read_accel_z = (int32_t)ps_FSP_RX->Payload.get_sensor_h3lis331dl.Accel_z[0] |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_h3lis331dl.Accel_z[1] << 8)  |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_h3lis331dl.Accel_z[2] << 16) |
+                               ((int32_t)ps_FSP_RX->Payload.get_sensor_h3lis331dl.Accel_z[3] << 24);
+        
+        // 2. Khôi phục lại giá trị Float ban đầu (tương ứng lúc bo sơ cấp nhân 1000)
+        float accel_x = (float)read_accel_x / 1000000.0f;
+        float accel_y = (float)read_accel_y / 1000000.0f;
+        float accel_z = (float)read_accel_z / 1000000.0f;
+
+        char msg[140]; 
+        char accel_x_str[16];
+        char accel_y_str[16];
+        char accel_z_str[16];
+
+        float_to_string(accel_x, accel_x_str, 2);
+        float_to_string(accel_y, accel_y_str, 2);
+        float_to_string(accel_z, accel_z_str, 2);
+
+        sprintf(msg, "H3LIS331DL x: %s g; y: %s g; z: %s g\n\r> ", accel_x_str, accel_y_str, accel_z_str);
+        UART_Driver_SendString(&XBEE_UART, msg);
+
+        break;
+	}
+	case FSP_CMD_GET_SENSOR_H3LIS331DL_FS:
+	{
+		break;
+	}
+
 	default:
 		return 0;
 
 	}
 }
 
+
+
+/* -------------------------- STATIC FUNCTION ---------------------------------------- */
+static void float_to_string(float num, char *str, uint8_t precision) 
+{
+
+    if (num < 0) {
+        *str++ = '-';
+        num = -num;
+    }
+
+    num += 0.5f / powf(10.0f, (float)precision);
+
+    uint32_t int_part = (uint32_t)num;
+    
+    float frac_part = num - (float)int_part;
+
+    char temp_str[16];
+    int i = 0;
+    
+    if (int_part == 0) {
+        temp_str[i++] = '0';
+    } else {
+        while (int_part > 0) {
+            temp_str[i++] = (int_part % 10) + '0';
+            int_part /= 10;
+        }
+    }
+
+    for (int j = i - 1; j >= 0; j--) {
+        *str++ = temp_str[j];
+    }
+
+    if (precision > 0) {
+        *str++ = '.'; // Thêm dấu chấm thập phân
+        
+        while (precision > 0) {
+            frac_part *= 10.0f;
+            uint32_t digit = (uint32_t)frac_part;
+            *str++ = digit + '0';
+            frac_part -= (float)digit;
+            precision--;
+        }
+    }
+    *str = '\0';
+}
 
 static void fsp_print(uint8_t packet_length)
 {

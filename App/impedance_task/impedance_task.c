@@ -58,120 +58,135 @@ static uint16_t impedance_range_array[] =
     6000,
 };
 
+uint16_t impedance_measure_manual(uint8_t pos_pole, uint8_t neg_pole){
+
+    HB_Set_Pole_Pos_Manual(pos_pole, neg_pole);
+    VS_Enable_Hv();
+    
+    LL_mDelay(199);
+
+    uint16_t impedance_value = impedance_caculate();
 
 
-void impedance_task (void*){
+    HB_Off();
+    VS_Off();  
 
-    switch(impedance_task_state){
-        case IMPEDANCE_TASK_STATE_IDLE:
-        {
-            HB_Off();
-            VS_Off();
-
-            voltage_range_count = 0;
-            impedance_range_count = 0;
-
-            SchedulerTaskDisable(IMPEDANCE_TASK);
-
-            break;
-        }
-       case IMPEDANCE_TASK_STATE_SET_CHARGE:
-       {
-           ps_FSP_TX -> CMD = FSP_CMD_SET_CAP_VOLT_HV;
-           ps_FSP_TX -> Payload.set_volt_hv.HV_High =  (uint8_t)((voltage_range_array[voltage_range_count] >> 8) & 0xFF);
-           ps_FSP_TX -> Payload.set_volt_hv.HV_Low =   (uint8_t)(voltage_range_array[voltage_range_count] & 0xFF);
-
-           fsp_print(3);
-
-           ps_FSP_TX -> CMD = FSP_CMD_SET_CAP_CONTROL;
-           ps_FSP_TX -> Payload.set_charge.HV_cmd_charge = 1;
-           ps_FSP_TX -> Payload.set_charge.LV_cmd_charge = 0;
-           fsp_print(3);
-
-           im_time_out = 10000;
-           impedance_task_state = IMPEDANCE_TASK_STATE_CHARGING;
-
-           ps_FSP_TX -> CMD = FSP_CMD_MEASURE_VOLT;
-           fsp_print(1);
-
-           break;
-       }
-       case IMPEDANCE_TASK_STATE_CHARGING:
-       {
-			if(im_time_out > 0) return;
-
-			im_time_out = 1000;
-
-           float lower = voltage_range_array[voltage_range_count] * (1.0f - 10/100.0f);
-           float upper = voltage_range_array[voltage_range_count] * (1.0f + 10/100.0f);
-
-           if(impedance_task_volt_charged < lower || impedance_task_volt_charged > upper)
-           {
-               ps_FSP_TX -> CMD = FSP_CMD_MEASURE_VOLT;
-               fsp_print(1);
-           }
-           else{
-               impedance_task_state = IMPEDANCE_TASK_STATE_INITIAL;
-           }
-           break;
-       }
-        case IMPEDANCE_TASK_STATE_INITIAL:
-        {
-            HB_Set_Pole_Pos_Manual(impedance_select_pole.pos_pole, impedance_select_pole.neg_pole);
-            VS_Enable_Hv();
-            
-            impedance_task_state = IMPEDANCE_TASK_STATE_CACULATE;
-            break;
-        }
-        case IMPEDANCE_TASK_STATE_CACULATE:
-        {
-
-            uint16_t impedance_value = impedance_caculate();
-
-            if(impedance_value > impedance_range_array[impedance_range_count]){
-
-                if(voltage_range_count < (MESURE_IMPEDANCE_RANGE_MAX - 1)){
-                    voltage_range_count++;
-                    impedance_range_count++;
-                    
-                    impedance_task_state = IMPEDANCE_TASK_STATE_SET_CHARGE;
-                    return; 
-                }
-
-            }
-
-            char msg[64];
-
-            if (voltage_range_count >= (MESURE_IMPEDANCE_RANGE_MAX - 1) && impedance_value > impedance_range_array[MESURE_IMPEDANCE_RANGE_MAX - 1]) {
-                sprintf(msg, "IMPEDANCE IS %d Ohm (OVER MAX RANGE)\n\r> ", impedance_value);
-            } else {
-                sprintf(msg, "IMPEDANCE IS %d Ohm\n\r> ", impedance_value);
-            }
-            
-            UART_Driver_SendString(&XBEE_UART, msg);
-
-            ps_FSP_TX -> CMD = FSP_CMD_SET_CAP_RELEASE;
-            ps_FSP_TX -> Payload.set_discharge.HV_cmd_discharge = 1;
-            ps_FSP_TX -> Payload.set_discharge.LV_cmd_discharge = 0;
-            fsp_print(3);
-     
-            impedance_task_state = IMPEDANCE_TASK_STATE_IDLE;
-            is_impedance_task_enable = false;
-
-            voltage_range_count = 0;
-            impedance_range_count = 0;
-
-            break;
-        }
-        default:
-            break;
-    }
-
-    return;
+    return impedance_value;
 }
 
 
+ void impedance_task (void*){
 
+     switch(impedance_task_state){
+         case IMPEDANCE_TASK_STATE_IDLE:
+         {
+             HB_Off();
+             VS_Off();
+
+             voltage_range_count = 0;
+             impedance_range_count = 0;
+
+             SchedulerTaskDisable(IMPEDANCE_TASK);
+
+             break;
+         }
+        case IMPEDANCE_TASK_STATE_SET_CHARGE:
+        {
+            ps_FSP_TX -> CMD = FSP_CMD_SET_CAP_VOLT_HV;
+            ps_FSP_TX -> Payload.set_volt_hv.HV_High =  (uint8_t)((voltage_range_array[voltage_range_count] >> 8) & 0xFF);
+            ps_FSP_TX -> Payload.set_volt_hv.HV_Low =   (uint8_t)(voltage_range_array[voltage_range_count] & 0xFF);
+
+            fsp_print(3);
+
+            ps_FSP_TX -> CMD = FSP_CMD_SET_CAP_CONTROL;
+            ps_FSP_TX -> Payload.set_charge.HV_cmd_charge = 1;
+            ps_FSP_TX -> Payload.set_charge.LV_cmd_charge = 0;
+            fsp_print(3);
+
+            im_time_out = 10000;
+            impedance_task_state = IMPEDANCE_TASK_STATE_CHARGING;
+
+            ps_FSP_TX -> CMD = FSP_CMD_MEASURE_VOLT;
+            fsp_print(1);
+
+            break;
+        }
+        case IMPEDANCE_TASK_STATE_CHARGING:
+        {
+ 			if(im_time_out > 0) return;
+
+ 			im_time_out = 1000;
+
+            float lower = voltage_range_array[voltage_range_count] * (1.0f - 10/100.0f);
+            float upper = voltage_range_array[voltage_range_count] * (1.0f + 10/100.0f);
+
+            if(impedance_task_volt_charged < lower || impedance_task_volt_charged > upper)
+            {
+                ps_FSP_TX -> CMD = FSP_CMD_MEASURE_VOLT;
+                fsp_print(1);
+            }
+            else{
+                impedance_task_state = IMPEDANCE_TASK_STATE_INITIAL;
+            }
+            break;
+        }
+         case IMPEDANCE_TASK_STATE_INITIAL:
+         {
+             HB_Set_Pole_Pos_Manual(impedance_select_pole.pos_pole, impedance_select_pole.neg_pole);
+             VS_Enable_Hv();
+            
+             impedance_task_state = IMPEDANCE_TASK_STATE_CACULATE;
+             break;
+         }
+         case IMPEDANCE_TASK_STATE_CACULATE:
+         {
+
+             uint16_t impedance_value = impedance_caculate();
+
+             if(impedance_value > impedance_range_array[impedance_range_count]){
+
+                 if(voltage_range_count < (MESURE_IMPEDANCE_RANGE_MAX - 1)){
+                     voltage_range_count++;
+                     impedance_range_count++;
+                    
+                     impedance_task_state = IMPEDANCE_TASK_STATE_SET_CHARGE;
+                     return;
+                 }
+
+             }
+
+             char msg[64];
+
+             if (voltage_range_count >= (MESURE_IMPEDANCE_RANGE_MAX - 1) && impedance_value > impedance_range_array[MESURE_IMPEDANCE_RANGE_MAX - 1]) {
+                 sprintf(msg, "IMPEDANCE IS %d Ohm (OVER MAX RANGE)\n\r> ", impedance_value);
+             } else {
+                 sprintf(msg, "IMPEDANCE IS %d Ohm\n\r> ", impedance_value);
+             }
+            
+             UART_Driver_SendString(&XBEE_UART, msg);
+
+             ps_FSP_TX -> CMD = FSP_CMD_SET_CAP_RELEASE;
+             ps_FSP_TX -> Payload.set_discharge.HV_cmd_discharge = 1;
+             ps_FSP_TX -> Payload.set_discharge.LV_cmd_discharge = 0;
+             fsp_print(3);
+     
+             impedance_task_state = IMPEDANCE_TASK_STATE_IDLE;
+             is_impedance_task_enable = false;
+
+             voltage_range_count = 0;
+             impedance_range_count = 0;
+
+             break;
+         }
+         default:
+             break;
+     }
+
+     return;
+ }
+
+
+/*-------------------- STATIC FUNCTION-------------------------------*/
 static uint16_t impedance_caculate(void){
 
     float current[10] = {0};

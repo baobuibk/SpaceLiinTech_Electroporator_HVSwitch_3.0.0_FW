@@ -52,8 +52,8 @@ typedef enum
     H_BRIDGE_TASK,
     FSP_LINE_TASK,
     VOM_TASK,
-    IMPEDANCE_TASK,
-
+	IMPEDANCE_TASK,
+    
 } Task_List_t;
 
 void App_Main(void);

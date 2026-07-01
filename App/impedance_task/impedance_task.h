@@ -40,6 +40,7 @@ extern uint16_t                impedance_task_volt_charged;
 extern impedance_pole          impedance_select_pole;
 extern uint32_t				   im_time_out;
 
+uint16_t impedance_measure_manual(uint8_t pos_pole, uint8_t neg_pole);
 void impedance_task (void*);
 
 #endif /* IMPEDANCE_TASK_IMPEDANCE_TASK_H_ */

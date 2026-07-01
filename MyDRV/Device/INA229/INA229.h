@@ -59,6 +59,11 @@ uint16_t INA229_ReadReg16(ina229_t* dev, uint8_t reg);
 uint32_t INA229_ReadReg24(ina229_t* dev, uint8_t reg);
 uint64_t INA229_ReadReg40(ina229_t* dev, uint8_t reg);
 
+void INA229_Set_ShuntOverVoltage(ina229_t* dev, double r_shunt_ohms, double current_amps);
+void INA229_Set_ShuntUnderVoltage(ina229_t* dev, double r_shunt_ohms, double current_amps);
+void INA229_Set_BusOverVoltage(ina229_t* dev, double voltage_raw);
+void INA229_Set_BusUnderVoltage(ina229_t* dev, double voltage_raw);
+
 
 double INA229_GetBusVoltage(ina229_t* dev);
 double INA229_GetShuntVoltage(ina229_t* dev);
