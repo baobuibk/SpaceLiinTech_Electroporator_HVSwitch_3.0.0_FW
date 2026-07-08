@@ -71,7 +71,7 @@ void VS_Init(void){
     LL_TIM_EnableARRPreload(V_SWITCH_LIN1_HANDLE);
     LL_TIM_EnableARRPreload(V_SWITCH_LIN2_HANDLE);
 
-    LL_GPIO_ResetOutputPin(GPIOB, LL_GPIO_PIN_7);
+//    LL_GPIO_ResetOutputPin(GPIOB, LL_GPIO_PIN_7);
 
     LL_TIM_DisableIT_UPDATE(V_SWITCH_LIN1_HANDLE);
     LL_TIM_DisableIT_UPDATE(V_SWITCH_LIN2_HANDLE);
@@ -91,6 +91,7 @@ void VS_Init(void){
 
 
 
+/*-------------------------------------- VS FUNCTION  --------------------------------------*/
 static uint32_t VS_GetBSRR(vs_state_t state) {
 
     uint32_t hin = VS_POLES.HV_Pin;
@@ -147,6 +148,31 @@ void VS_Off(void) {
     LL_GPIO_ResetOutputPin(VS_POLES.Port, VS_POLES.LV_Pin);
 }
 
+bool VS_Is_Phase_Done(void) {
+    return is_vs_sequence_done;
+}
+
+void VS_Clear_Sequence(void) {
+    vs_event_count = 0;
+
+    memset(arr_channel_buf, 0, sizeof(arr_channel_buf));
+    memset(gpio_channel_buf, 0, sizeof(gpio_channel_buf));
+}
+
+void VS_Stop_Priority(void) {
+
+    LL_TIM_DisableDMAReq_UPDATE(TIM8);
+    LL_TIM_DisableDMAReq_CC4(TIM8);
+
+    LL_DMA_DisableStream(DMA2,LL_DMA_STREAM_1);
+    LL_DMA_DisableStream(DMA2,LL_DMA_STREAM_7);
+
+    LL_TIM_DisableCounter(TIM8);
+
+    is_vs_sequence_done = true;
+}
+
+/*-------------------------------------- START PULSING FUNCTION  --------------------------------------*/
 void DMA_VS_GPIO_Start(uint32_t len)
 {
     LL_DMA_DisableStream(DMA2, LL_DMA_STREAM_1);
@@ -179,17 +205,6 @@ void DMA_VS_ARR_Start(uint32_t len)
 	LL_DMA_EnableStream(DMA2,LL_DMA_STREAM_7);
 }
 
-bool VS_Is_Phase_Done(void) {
-    return is_vs_sequence_done;
-}
-
-void VS_Clear_Sequence(void) {
-    vs_event_count = 0;
-
-    memset(arr_channel_buf, 0, sizeof(arr_channel_buf));
-    memset(gpio_channel_buf, 0, sizeof(gpio_channel_buf));
-}
-
 void VS_Start(void)
 {
     is_vs_sequence_done = false;
@@ -211,6 +226,8 @@ void VS_Start(void)
 
     LL_TIM_EnableCounter(TIM8);
 }
+
+/*-------------------------------- DMA ISR FUNCTION -----------------------------*/
 
 void DMA2_Stream1_IRQHandler(void)
 {

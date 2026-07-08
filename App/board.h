@@ -79,14 +79,24 @@
 #define FSP_BUF_LEN				128
 /***********************************************/
 
+/*********************VOM INA229**********************/
 #define VOM_SPI_HANDLE          SPI1
 #define VOM_SPI_IRQ             SPI1_IRQn
+#define VOM_SPI_DMA_HANDLE      DMA2
+#define VOM_SPI_DMA_CHANNEL     LL_DMA_CHANNEL_3
+#define VOM_SPI_DMA_TX_STREAM   LL_DMA_STREAM_3 
+#define VOM_SPI_DMA_RX_STREAM   LL_DMA_STREAM_0
+
 
 #define VOM_SPI_CS_PORT         GPIOA
 #define VOM_SPI_CS_PIN          LL_GPIO_PIN_4
 
 #define VOM_OVC_PORT            GPIOB
 #define VOM_OVC_PIN             LL_GPIO_PIN_0
+
+#define VOM_TIM_HANDLE 			TIM4
+
+
 
 
 #endif /* BOARD_H_ */

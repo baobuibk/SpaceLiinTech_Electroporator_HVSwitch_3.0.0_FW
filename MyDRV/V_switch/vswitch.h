@@ -32,15 +32,17 @@ typedef enum
 } vs_state_t;
 
 void VS_Init(void);
-void VS_Pulse(uint32_t t_hv_on_us, uint32_t t_lv_on_us, uint32_t dead_us, uint8_t seq_count);
 
+void VS_Pulse(uint32_t t_hv_on_us, uint32_t t_lv_on_us, uint32_t dead_us, uint8_t seq_count);
 void VS_Off(void);
 void VS_Enable_Hv(void);
-
-void VS_Start(void);
+void VS_Stop_Priority(void);
 
 bool VS_Is_Phase_Done(void);
 void VS_Clear_Sequence(void);
+
+
+void VS_Start(void);
 
 
 #endif /* V_SWITCH_VSWITCH_H_ */

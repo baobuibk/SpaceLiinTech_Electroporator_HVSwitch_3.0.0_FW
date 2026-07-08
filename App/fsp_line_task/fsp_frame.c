@@ -176,17 +176,8 @@ uint8_t FSP_Line_Process(void)
 		uint16_t lv_raw_vol = 	((uint16_t)ps_FSP_RX -> Payload.measure_volt.LV_raw_volt_high << 8)
 								| ps_FSP_RX -> Payload.measure_volt.LV_raw_volt_low;
 
-		if(is_measure_volt_notify_enable == true){
-			sprintf(msg, "HV cap: %dV, LV cap: %dV\n\r> ", hv_raw_vol, lv_raw_vol);
-			UART_Driver_SendString(&XBEE_UART, msg);
-
-			is_measure_volt_notify_enable = false;
-		}
-
-		if(impedance_task_state == IMPEDANCE_TASK_STATE_CHARGING)
-		{
-			impedance_task_volt_charged = hv_raw_vol;
-		}
+		sprintf(msg, "HV cap: %dV, LV cap: %dV\n\r> ", hv_raw_vol, lv_raw_vol);
+		UART_Driver_SendString(&XBEE_UART, msg);
 
 		break;
 	}
@@ -197,17 +188,17 @@ uint8_t FSP_Line_Process(void)
 		bool LV_OVV_Flag = ps_FSP_RX -> Payload.get_ovv_flag.LV_OVV_flag;
 
 		if(HV_OVV_Flag == true){
-			UART_Driver_SendString(&XBEE_UART, "HV CAP IS OVER VOLTAGE\r\n> ");
+			UART_Driver_SendString(&XBEE_UART, "HV CAP OVER VOLTAGE FLAG STATUS IS TRUE\r\n> ");
 		}
 		else if(HV_OVV_Flag == false){
-			UART_Driver_SendString(&XBEE_UART, "HV CAP VOLTAGE OK\r\n> ");
+			UART_Driver_SendString(&XBEE_UART, "HV CAP OVER VOLTAGE FLAG STATUS IS FALSE\r\n> ");
 		}
 
 		if(LV_OVV_Flag == true){
-			UART_Driver_SendString(&XBEE_UART, "LV CAP IS OVER VOLTAGE\r\n> ");
+			UART_Driver_SendString(&XBEE_UART, "LV CAP OVER VOLTAGE FLAG STATUS IS TRUE\r\n> ");
 		}
 		else if(LV_OVV_Flag == false){
-			UART_Driver_SendString(&XBEE_UART, "LV CAP VOLTAGE OK\r\n> ");
+			UART_Driver_SendString(&XBEE_UART, "LV CAP OVER VOLTAGE FLAG STATUS IS FALSE\r\n> ");
 		}
 		break;
 
@@ -363,7 +354,7 @@ uint8_t FSP_Line_Process(void)
 
         float_to_string(temp, temp_str, 2);
 
-        sprintf(msg, "TEMP: %s C\n\r> ", temp_str);
+        sprintf(msg, "TEMPERATURE: %s C\n\r> ", temp_str);
         UART_Driver_SendString(&XBEE_UART, msg);
 
 		break;
@@ -383,7 +374,7 @@ uint8_t FSP_Line_Process(void)
 
         float_to_string(press, press_str, 2);
 
-        sprintf(msg, "PRESS: %s Pa "
+        sprintf(msg, "PRESSURE: %s Pa "
         		""
         		"\n\r> ", press_str);
         UART_Driver_SendString(&XBEE_UART, msg);
@@ -403,7 +394,7 @@ uint8_t FSP_Line_Process(void)
         char altitude_str[16];
         float_to_string(altitude, altitude_str, 2);
 
-        sprintf(msg, "ALT: %s m\n\r> ", altitude_str);
+        sprintf(msg, "ALTITUDE: %s m\n\r> ", altitude_str);
         UART_Driver_SendString(&XBEE_UART, msg);
 
 		break;
@@ -440,7 +431,7 @@ uint8_t FSP_Line_Process(void)
         float_to_string(press, press_str, 2);
         float_to_string(altitude, altitude_str, 2);
 
-        sprintf(msg, "TEMP: %s C | PRESS: %s Pa | ALT: %s m\n\r> ", temp_str, press_str, altitude_str);
+        sprintf(msg, "TEMPERATURE: %s C | PRESSURE: %s Pa | ALTITUDE: %s m\n\r> ", temp_str, press_str, altitude_str);
         UART_Driver_SendString(&XBEE_UART, msg);
 
 		break;
@@ -485,6 +476,32 @@ uint8_t FSP_Line_Process(void)
 	{
 		break;
 	}
+    case FSP_CMD_GET_SENSOR_HV_TEMP:
+    {
+        float hv_temp = (uint16_t)(ps_FSP_RX->Payload.get_sensor_hv_temp.HV_temp_high << 8 | ps_FSP_RX->Payload.get_sensor_hv_temp.HV_temp_low) / 100.0f;
+        
+        char msg[128];
+        char hv_temp_str[16];
+        float_to_string(hv_temp, hv_temp_str, 2);
+
+        sprintf(msg, "HV CHANNEL TEMP: %s C\n\r> ", hv_temp_str);
+        UART_Driver_SendString(&XBEE_UART, msg);
+
+        break;
+    }
+    case FSP_CMD_GET_SENSOR_LV_TEMP:
+    {
+        float lv_temp = (uint16_t)(ps_FSP_RX->Payload.get_sensor_lv_temp.LV_temp_high << 8 | ps_FSP_RX->Payload.get_sensor_lv_temp.LV_temp_low) / 100.0f;
+        
+        char msg[128];
+        char lv_temp_str[16];
+        float_to_string(lv_temp, lv_temp_str, 2);
+
+        sprintf(msg, "LV CHANNEL TEMP: %s C\n\r> ", lv_temp_str);
+        UART_Driver_SendString(&XBEE_UART, msg);
+
+        break;
+    }
 
 	default:
 		return 0;

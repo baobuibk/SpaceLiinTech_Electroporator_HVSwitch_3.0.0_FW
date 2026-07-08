@@ -63,10 +63,8 @@ uint16_t impedance_measure_manual(uint8_t pos_pole, uint8_t neg_pole){
     HB_Set_Pole_Pos_Manual(pos_pole, neg_pole);
     VS_Enable_Hv();
     
-    LL_mDelay(199);
-
+    LL_mDelay(50);
     uint16_t impedance_value = impedance_caculate();
-
 
     HB_Off();
     VS_Off();  
