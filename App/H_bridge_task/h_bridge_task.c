@@ -27,8 +27,8 @@ static H_Bridge_Sequence_t default_sequence = {
     .pos_pole_index = 1,
     .neg_pole_index = 6,
 
-    .hv_pos_count = 1,
-    .hv_neg_count = 1,
+    .hv_pos_count = 10,
+    .hv_neg_count = 10,
 
     .hv_delay_ms = 5,
 
@@ -39,8 +39,8 @@ static H_Bridge_Sequence_t default_sequence = {
 
     .pulse_delay_ms = 5,
 
-    .lv_pos_count = 1,
-    .lv_neg_count = 1,
+    .lv_pos_count = 10,
+    .lv_neg_count = 10,
 
     .lv_delay_ms = 5,
 

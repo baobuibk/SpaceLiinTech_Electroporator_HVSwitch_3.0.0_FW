@@ -166,8 +166,8 @@ static const CliCommandBinding cliStaticBindings_internal[] = {
 
 	/*------------------------------------------ ERROR HANDLE CMD ----------------------------------------------------------------- */
 	{ NULL,	"GET_OVV_FLAG", 			"format: GET_OVV_FLAG",								false,NULL,CMD_GET_OVV_FLAG},
-	{ NULL,	"RESET_OVV_FLAG", 			"format: RESET_OVV_FLAG",							false,NULL,CMD_RESET_OVV_FLAG_HV},
-	{ NULL,	"RESET_OVV_FLAG", 			"format: RESET_OVV_FLAG",							false,NULL,CMD_RESET_OVV_FLAG_LV},
+	{ NULL,	"RESET_OVV_FLAG_HV", 		"format: RESET_OVV_FLAG_HV",						false,NULL,CMD_RESET_OVV_FLAG_HV},
+	{ NULL,	"RESET_OVV_FLAG_LV", 		"format: RESET_OVV_FLAG_LV",						false,NULL,CMD_RESET_OVV_FLAG_LV},
 	{ NULL,	"GET_OVC_FLAG", 			"format: GET_OVC_FLAG",								false,NULL,CMD_GET_OVC_FLAG},
 	{ NULL,	"RESET_OVC_FLAG", 			"format: RESET_OVC_FLAG",							false,NULL,CMD_RESET_OVC_FLAG},
 
@@ -1094,7 +1094,7 @@ static void	CMD_GET_SEQUENCE_INDEX(EmbeddedCli *cli, char *args, void *context){
 
 	char msg[64];
 	sprintf(msg,"> CURRENT SEQUENCE INDEX: %d", CMD_sequence_index + 1);
-	UART_Driver_SendString(&XBEE_UART, msg);
+	embeddedCliPrint(cli, msg);
 
 	embeddedCliPrint(cli,"> CMDLINE_OK");
 	return;
@@ -1117,7 +1117,7 @@ static void CMD_GET_SEQUENCE_DELAY (EmbeddedCli *cli, char *args, void *context)
 
 	char msg[64];
 	sprintf(msg,"> CURRENT SEQUENCE DELAY: %d", Sequence_List[CMD_sequence_index].sequence_delay_ms);
-	UART_Driver_SendString(&XBEE_UART, msg);
+	embeddedCliPrint(cli, msg);
 
 	embeddedCliPrint(cli,"> CMDLINE_OK");
 	return;
@@ -1453,10 +1453,45 @@ static void CMD_GET_SENSOR_H3LIS_VALUE (EmbeddedCli *cli, char *args, void *cont
 	return;	
 }
 static void CMD_SET_SENSOR_H3LIS_FS (EmbeddedCli *cli, char *args, void *context){
+	uint8_t argc = embeddedCliGetTokenCount(args);
+
+	if (argc < 1) {
+		embeddedCliPrint(cli, "> CMDLINE_TOO_FEW_ARGS");
+		return;
+	} else if (argc > 1) {
+		embeddedCliPrint(cli, "> CMDLINE_TOO_MANY_ARGS");
+		return;
+	}
+
+	int receive_argm;
+	receive_argm = atoi(embeddedCliGetToken(args, 1));
+
+	if((receive_argm != 100) && (receive_argm != 200) && (receive_argm != 400)){
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
+		return;
+	}
+
+	ps_FSP_TX -> CMD = FSP_CMD_SET_SENSOR_H3LIS331DL_FS;
+	ps_FSP_TX -> Payload.set_sensor_h3lis331dl_fs.fs_value = receive_argm/100;
+
+	fsp_print(2);
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;
 }
 
 static void CMD_GET_SENSOR_H3LIS_FS (EmbeddedCli *cli, char *args, void *context){
+	uint8_t argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
+		return;
+	}
 
+	ps_FSP_TX -> CMD = FSP_CMD_GET_SENSOR_H3LIS331DL_FS;
+	fsp_print(1);
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;
 }
 
 static void CMD_GET_SENSOR_HV_TEMP (EmbeddedCli *cli, char *args, void *context){
