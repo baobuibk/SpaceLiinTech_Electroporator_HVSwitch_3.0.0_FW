@@ -9,128 +9,190 @@
 #include "spi.h"
 
 #include "stm32f4xx_ll_spi.h"
+#include "stm32f4xx_ll_dma.h"
 
 #include <string.h>
 #include <stdbool.h>
 #include <stdint.h>
 
-void SPI_Init(spi_driver_t* p_spi,
-		 	  SPI_TypeDef* _handle, IRQn_Type _irqn,
-              uint8_t* _p_TX_buffer, uint32_t _TX_size,
-              uint8_t* _p_RX_buffer, uint32_t _RX_size,
-              GPIO_TypeDef* _cs_port, uint32_t _cs_pin)
+
+
+static void SPI_Clear_DMA_Flags_Internal(DMA_TypeDef* DMAx, uint32_t Stream);
+
+
+
+void SPI_Init(spi_driver_t* p_spi)
 {
-    p_spi->handle  = _handle;
-    p_spi->irqn    = _irqn;
 
-    p_spi->p_TX_buffer = _p_TX_buffer;
-    p_spi->TX_size = _TX_size;
-    p_spi->TX_write_index = 0;
-    p_spi->TX_read_index  = 0;
+    LL_DMA_DisableStream(p_spi->dma_handle, p_spi->dma_tx_stream);
+	LL_DMA_DisableStream(p_spi->dma_handle, p_spi->dma_rx_stream);
 
-    p_spi->p_RX_buffer = _p_RX_buffer;
-    p_spi->RX_size = _RX_size;
-    p_spi->RX_write_index = 0;
-    p_spi->RX_read_index  = 0;
+	LL_DMA_SetMode(p_spi->dma_handle, p_spi->dma_tx_stream, LL_DMA_MODE_NORMAL);
+	LL_DMA_SetMode(p_spi->dma_handle, p_spi->dma_rx_stream, LL_DMA_MODE_NORMAL);
 
-    p_spi->cs_port = _cs_port;
-    p_spi->cs_pin  = _cs_pin;
+	LL_DMA_SetPeriphAddress(p_spi->dma_handle, p_spi->dma_tx_stream, (uint32_t)&(p_spi->handle->DR));
+	LL_DMA_SetPeriphAddress(p_spi->dma_handle, p_spi->dma_rx_stream, (uint32_t)&(p_spi->handle->DR));
 
-    LL_GPIO_SetOutputPin(p_spi->cs_port, p_spi->cs_pin);
+    SPI_Clear_DMA_Flags_Internal(p_spi->dma_handle, p_spi->dma_tx_stream);
+    SPI_Clear_DMA_Flags_Internal(p_spi->dma_handle, p_spi->dma_rx_stream);
 
-    LL_SPI_DisableIT_TXE(p_spi->handle);
-    LL_SPI_DisableIT_RXNE(p_spi->handle);
+    LL_DMA_EnableIT_TC(p_spi->dma_handle, p_spi->dma_rx_stream);
 
     LL_SPI_Enable(p_spi->handle);
 }
 
 
-bool SPI_is_buffer_full(volatile uint32_t *pRead, volatile uint32_t *pWrite, uint32_t Size) {
-    return (((( *pWrite + 1) % Size) == *pRead) ? 1 : 0);
-}
-
-bool SPI_is_buffer_empty(volatile uint32_t *pRead, volatile uint32_t *pWrite) {
-    return (*pRead == *pWrite) ? 1 : 0;
-}
-
-uint32_t SPI_advance_buffer_index(volatile uint32_t* pIndex, uint32_t Size) {
-    *pIndex = (*pIndex + 1) % Size;
-    return *pIndex;
-}
-
-
-bool SPI_Transmit_IT(spi_driver_t* p_spi, const uint8_t* pData, uint16_t Size)
+bool SPI_Transmit_Polling(spi_driver_t* p_spi, const uint8_t* pData, uint16_t Size)
 {
-    for (uint16_t i = 0; i < Size; i++) {
-        if (SPI_is_buffer_full(&p_spi->TX_read_index, &p_spi->TX_write_index, p_spi->TX_size)) {
-            return false;
-        }
-        p_spi->p_TX_buffer[p_spi->TX_write_index] = pData[i];
-        SPI_advance_buffer_index(&p_spi->TX_write_index, p_spi->TX_size);
+    for (uint16_t i = 0; i < Size; i++)
+    {
+        while (!LL_SPI_IsActiveFlag_TXE(p_spi->handle));
+        LL_SPI_TransmitData8(p_spi->handle, pData[i]);
+        
+        // Đọc dữ liệu ảo để xóa cờ RXNE, tránh lỗi Overrun (OVR)
+        while (!LL_SPI_IsActiveFlag_RXNE(p_spi->handle));
+        LL_SPI_ReceiveData8(p_spi->handle); 
     }
+    while (LL_SPI_IsActiveFlag_BSY(p_spi->handle));
+    return true;
+}
 
-    LL_GPIO_ResetOutputPin(p_spi->cs_port, p_spi->cs_pin);
+bool SPI_Receive_Polling(spi_driver_t* p_spi, uint8_t* pData, uint16_t Size)
+{
+    for (uint16_t i = 0; i < Size; i++)
+    {
+        while (!LL_SPI_IsActiveFlag_TXE(p_spi->handle));
+        LL_SPI_TransmitData8(p_spi->handle, 0xFF); 
+        
+        while (!LL_SPI_IsActiveFlag_RXNE(p_spi->handle));
+        pData[i] = LL_SPI_ReceiveData8(p_spi->handle);
+    }
+    while (LL_SPI_IsActiveFlag_BSY(p_spi->handle));
+    return true;
+}
 
-    LL_SPI_EnableIT_TXE(p_spi->handle);
-    LL_SPI_EnableIT_RXNE(p_spi->handle);
+bool SPI_TransmitReceive_Polling(spi_driver_t* p_spi, const uint8_t* pTxData, uint8_t* pRxData, uint16_t Size)
+{
+    for (uint16_t i = 0; i < Size; i++)
+    {
+        while (!LL_SPI_IsActiveFlag_TXE(p_spi->handle));
+        LL_SPI_TransmitData8(p_spi->handle, pTxData[i]);
+        
+        while (!LL_SPI_IsActiveFlag_RXNE(p_spi->handle));
+        pRxData[i] = LL_SPI_ReceiveData8(p_spi->handle);
+    }
+    while (LL_SPI_IsActiveFlag_BSY(p_spi->handle));
+    return true;
+}
+
+
+
+bool SPI_Transmit_DMA(spi_driver_t* p_spi, const uint8_t* pData, uint16_t Size)
+{
+    if (p_spi->dma_handle == NULL) return false;
+
+    LL_DMA_DisableStream(p_spi->dma_handle, p_spi->dma_tx_stream);
+
+    LL_DMA_SetMemoryAddress(p_spi->dma_handle, p_spi->dma_tx_stream, (uint32_t)pData);
+    LL_DMA_SetDataLength(p_spi->dma_handle, p_spi->dma_tx_stream, Size);
+    
+    SPI_Clear_DMA_Flags_Internal(p_spi->dma_handle, p_spi->dma_tx_stream);
+
+    LL_DMA_EnableStream(p_spi->dma_handle, p_spi->dma_tx_stream);
+
+    LL_SPI_EnableDMAReq_TX(p_spi->handle);
+
+    return true;
+}
+
+bool SPI_Receive_DMA(spi_driver_t* p_spi, uint8_t* pData, uint16_t Size, const uint8_t* pDummyByte)
+{
+    if (p_spi->dma_handle == NULL || pDummyByte == NULL) return false;
+
+    // 1. Cấu hình luồng Nhận (RX)
+    LL_DMA_DisableStream(p_spi->dma_handle, p_spi->dma_rx_stream);
+    LL_DMA_SetMemoryAddress(p_spi->dma_handle, p_spi->dma_rx_stream, (uint32_t)pData);
+    LL_DMA_SetDataLength(p_spi->dma_handle, p_spi->dma_rx_stream, Size);
+
+    // 2. Cấu hình luồng Truyền ảo (TX Dummy) để kích hoạt xung nhịp nhịp Clock cho SPI
+    LL_DMA_DisableStream(p_spi->dma_handle, p_spi->dma_tx_stream);
+    LL_DMA_SetMemoryAddress(p_spi->dma_handle, p_spi->dma_tx_stream, (uint32_t)pDummyByte);
+    LL_DMA_SetDataLength(p_spi->dma_handle, p_spi->dma_tx_stream, Size);
+
+    SPI_Clear_DMA_Flags_Internal(p_spi->dma_handle, p_spi->dma_tx_stream);
+    SPI_Clear_DMA_Flags_Internal(p_spi->dma_handle, p_spi->dma_rx_stream);
+
+    // Kích hoạt Request DMA từ phía SPI
+    LL_SPI_EnableDMAReq_RX(p_spi->handle);
+    LL_SPI_EnableDMAReq_TX(p_spi->handle);
+
+    LL_DMA_EnableStream(p_spi->dma_handle, p_spi->dma_rx_stream);
+    LL_DMA_EnableStream(p_spi->dma_handle, p_spi->dma_tx_stream);
+
+    return true;
+}
+
+bool SPI_TransmitReceive_DMA(spi_driver_t* p_spi, const uint8_t* pTxData, uint8_t* pRxData, uint16_t Size)
+{
+    if (p_spi->dma_handle == NULL) return false;
+
+    // RX
+    LL_DMA_DisableStream(p_spi->dma_handle, p_spi->dma_rx_stream);
+    LL_DMA_SetMemoryAddress(p_spi->dma_handle, p_spi->dma_rx_stream, (uint32_t)pRxData);
+    LL_DMA_SetDataLength(p_spi->dma_handle, p_spi->dma_rx_stream, Size);
+
+    // TX
+    LL_DMA_DisableStream(p_spi->dma_handle, p_spi->dma_tx_stream);
+    LL_DMA_SetMemoryAddress(p_spi->dma_handle, p_spi->dma_tx_stream, (uint32_t)pTxData);
+    LL_DMA_SetDataLength(p_spi->dma_handle, p_spi->dma_tx_stream, Size);
+
+    SPI_Clear_DMA_Flags_Internal(p_spi->dma_handle, p_spi->dma_tx_stream);
+    SPI_Clear_DMA_Flags_Internal(p_spi->dma_handle, p_spi->dma_rx_stream);
+
+    LL_SPI_EnableDMAReq_RX(p_spi->handle);
+    LL_SPI_EnableDMAReq_TX(p_spi->handle);
+
+    LL_DMA_EnableStream(p_spi->dma_handle, p_spi->dma_rx_stream);
+    LL_DMA_EnableStream(p_spi->dma_handle, p_spi->dma_tx_stream);
+
 
     return true;
 }
 
 
 
-bool SPI_Receive_IT(spi_driver_t* p_spi, uint16_t Size)
+
+
+/*--------------------------- STATIC FUNCTIONS -----------------------------------*/
+static void SPI_Clear_DMA_Flags_Internal(DMA_TypeDef* DMAx, uint32_t Stream)
 {
-    for (uint16_t i = 0; i < Size; i++) {
-        if (SPI_is_buffer_full(&p_spi->TX_read_index, &p_spi->TX_write_index, p_spi->TX_size)) {
-            return false;
-        }
-        p_spi->p_TX_buffer[p_spi->TX_write_index] = 0xFF;
-        SPI_advance_buffer_index(&p_spi->TX_write_index, p_spi->TX_size);
-    }
-
-    LL_GPIO_ResetOutputPin(p_spi->cs_port, p_spi->cs_pin);
-
-    LL_SPI_EnableIT_TXE(p_spi->handle);
-    LL_SPI_EnableIT_RXNE(p_spi->handle);
-
-    return true;
-}
-
-// && LL_SPI_IsEnabledIT_RXNE(p_spi->handle)
-//&& LL_SPI_IsEnabledIT_TXE(p_spi->handle)
-
-void SPI_IRQHandler_Callback(spi_driver_t* p_spi)
-{
-
-    if (LL_SPI_IsActiveFlag_RXNE(p_spi->handle))
+    switch (Stream)
     {
-        uint8_t rx_data = LL_SPI_ReceiveData8(p_spi->handle);
-
-        if (!SPI_is_buffer_full(&p_spi->RX_read_index, &p_spi->RX_write_index, p_spi->RX_size)) {
-            p_spi->p_RX_buffer[p_spi->RX_write_index] = rx_data;
-            SPI_advance_buffer_index(&p_spi->RX_write_index, p_spi->RX_size);
-        }
-    }
-
-
-    if (LL_SPI_IsActiveFlag_TXE(p_spi->handle))
-    {
-        if (!SPI_is_buffer_empty(&p_spi->TX_read_index, &p_spi->TX_write_index))
-        {
-            LL_SPI_TransmitData8(p_spi->handle, p_spi->p_TX_buffer[p_spi->TX_read_index]);
-            SPI_advance_buffer_index(&p_spi->TX_read_index, p_spi->TX_size);
-        }
-        else
-        {
-            LL_SPI_DisableIT_TXE(p_spi->handle);
-
-            while (LL_SPI_IsActiveFlag_BSY(p_spi->handle));
-
-            LL_GPIO_SetOutputPin(p_spi->cs_port, p_spi->cs_pin);
-
-            LL_SPI_DisableIT_RXNE(p_spi->handle);
-        }
+        case LL_DMA_STREAM_0:
+            LL_DMA_ClearFlag_TC0(DMAx); LL_DMA_ClearFlag_HT0(DMAx); LL_DMA_ClearFlag_TE0(DMAx);
+            break;
+        case LL_DMA_STREAM_1:
+            LL_DMA_ClearFlag_TC1(DMAx); LL_DMA_ClearFlag_HT1(DMAx); LL_DMA_ClearFlag_TE1(DMAx);
+            break;
+        case LL_DMA_STREAM_2:
+            LL_DMA_ClearFlag_TC2(DMAx); LL_DMA_ClearFlag_HT2(DMAx); LL_DMA_ClearFlag_TE2(DMAx);
+            break;
+        case LL_DMA_STREAM_3:
+            LL_DMA_ClearFlag_TC3(DMAx); LL_DMA_ClearFlag_HT3(DMAx); LL_DMA_ClearFlag_TE3(DMAx);
+            break;
+        case LL_DMA_STREAM_4:
+            LL_DMA_ClearFlag_TC4(DMAx); LL_DMA_ClearFlag_HT4(DMAx); LL_DMA_ClearFlag_TE4(DMAx);
+            break;
+        case LL_DMA_STREAM_5:
+            LL_DMA_ClearFlag_TC5(DMAx); LL_DMA_ClearFlag_HT5(DMAx); LL_DMA_ClearFlag_TE5(DMAx);
+            break;
+        case LL_DMA_STREAM_6:
+            LL_DMA_ClearFlag_TC6(DMAx); LL_DMA_ClearFlag_HT6(DMAx); LL_DMA_ClearFlag_TE6(DMAx);
+            break;
+        case LL_DMA_STREAM_7:
+            LL_DMA_ClearFlag_TC7(DMAx); LL_DMA_ClearFlag_HT7(DMAx); LL_DMA_ClearFlag_TE7(DMAx);
+            break;
+        default:
+            break;
     }
 }
-

@@ -27,7 +27,8 @@ typedef enum{
 
 	HB_TASK_IDLE= 0,
 	HB_TASK_INIT_STATE,
-	HB_TASK_PULSING
+	HB_TASK_PULSING,
+    HB_TASK_ERROR_STATE,
 
 }H_Bridge_Task_State;
 
@@ -65,13 +66,16 @@ typedef struct{
 }H_Bridge_Sequence_t;
 
 
-extern bool is_h_bridge_enable;
+
 extern H_Bridge_Sequence_t Sequence_List[MAX_SEQUENCES];
 extern uint8_t 			   total_active_sequences;
+extern H_Bridge_Task_State H_Bridge_State;
 
 
 
 void H_Bridge_Task_Init(void);
+void H_Bridge_Task_Set_State(H_Bridge_Task_State state);
+H_Bridge_Task_State H_Bridge_Task_Get_State(void);
 
 void H_Bridge_Task(void*);
 

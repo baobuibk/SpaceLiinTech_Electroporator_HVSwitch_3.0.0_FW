@@ -12,16 +12,11 @@
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Global Variable~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
-bool is_h_bridge_enable = false;
-
 H_Bridge_Sequence_t     Sequence_List[MAX_SEQUENCES] = { 0 };
 uint8_t                 total_active_sequences = 0;
 H_Bridge_Task_State     H_Bridge_State;
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Private Variable~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
-
-static uint8_t current_HB_sequence_index = 0;
-
 
 static H_Bridge_Sequence_t default_sequence = {
     .is_edit_enable = false,
@@ -32,27 +27,27 @@ static H_Bridge_Sequence_t default_sequence = {
     .pos_pole_index = 1,
     .neg_pole_index = 6,
 
-    .hv_pos_count = 3,
-    .hv_neg_count = 3,
+    .hv_pos_count = 1,
+    .hv_neg_count = 1,
 
     .hv_delay_ms = 5,
 
-    .hv_pos_on_ms = 10,
-    .hv_pos_off_ms = 10,
-    .hv_neg_on_ms = 10,
-    .hv_neg_off_ms = 10,
+    .hv_pos_on_ms = 5,
+    .hv_pos_off_ms = 5,
+    .hv_neg_on_ms = 5,
+    .hv_neg_off_ms = 5,
 
-    .pulse_delay_ms = 1,
+    .pulse_delay_ms = 5,
 
-    .lv_pos_count = 5,
-    .lv_neg_count = 5,
+    .lv_pos_count = 1,
+    .lv_neg_count = 1,
 
-    .lv_delay_ms = 10,
+    .lv_delay_ms = 5,
 
-    .lv_pos_on_ms = 20,
-    .lv_pos_off_ms = 20,
-    .lv_neg_on_ms = 20,
-    .lv_neg_off_ms = 20,
+    .lv_pos_on_ms = 5,
+    .lv_pos_off_ms = 5,
+    .lv_neg_on_ms = 5,
+    .lv_neg_off_ms = 5,
 };
 
 static H_Bridge_Sequence_t current_seq;
@@ -60,18 +55,27 @@ static H_Bridge_Sequence_t current_seq;
 
 void H_Bridge_Task_Init(void) {
 
-    is_h_bridge_enable = false;
-
     HB_Off();
     VS_Off();
 
-    H_Bridge_State = HB_TASK_INIT_STATE;
+    total_active_sequences = 0;
+
+    H_Bridge_State = HB_TASK_IDLE;
 
     for (uint8_t i = 0; i < MAX_SEQUENCES; i++)
     {
         Sequence_List[i] = default_sequence;
     }
 }
+
+H_Bridge_Task_State H_Bridge_Task_Get_State(void) {
+    return H_Bridge_State;
+}
+
+void H_Bridge_Task_Set_State(H_Bridge_Task_State state) {
+    H_Bridge_State = state;
+}
+
 
 /*
 Currently, DMA buffer count is not calculated for maximum usage
@@ -91,25 +95,23 @@ Deadtime = 1 * 100us
 
 void H_Bridge_Task(void *) {
 
-    if(is_h_bridge_enable == false)
-    {
-        HB_Off();
-        VS_Off();
-
-        current_HB_sequence_index = 0;
-        H_Bridge_State = HB_TASK_INIT_STATE;
-        SchedulerTaskDisable(H_BRIDGE_TASK);
-        return;
-    }
-
     switch (H_Bridge_State) {
-        case HB_TASK_INIT_STATE: {
+        case HB_TASK_IDLE: 
+        {
+			total_active_sequences = 0;
+
+			SchedulerTaskDisable(H_BRIDGE_TASK);
+			break;
+        }
+
+        case HB_TASK_INIT_STATE: 
+        {
             if (total_active_sequences <= 0) {
 
                 break;
             }
             // Calculate BSRR for the first sequence
-            current_HB_sequence_index = 0;
+            uint8_t current_HB_sequence_index = 0;
             VS_Clear_Sequence();
             HB_Clear_Sequence();
 
@@ -144,29 +146,43 @@ void H_Bridge_Task(void *) {
 
             VS_Start();
             HB_Start();
+            VOM_Sampling_Start();
             
             H_Bridge_State = HB_TASK_PULSING;
 
             break;
         }
-//Kiểm tra lại TIM1 và TIM8 đã disable hoàn toàn hay chưa
-        case HB_TASK_PULSING: {
+        case HB_TASK_PULSING: 
+        {
             if (HB_Is_Phase_Done() == true)
             {
             	LL_TIM_DisableCounter(TIM1);
 
                 HB_Off();
                 VS_Off();
+                VOM_Sampling_Stop();
 
-                H_Bridge_State = HB_TASK_INIT_STATE;
-
-                total_active_sequences = 0;
-                is_h_bridge_enable = false;
-
-                break;
+                H_Bridge_State = HB_TASK_IDLE;
             }
+            break;
+        }
+
+        case HB_TASK_ERROR_STATE:
+        {
+            HB_Stop_Priority();
+            VS_Stop_Priority();
+
+            HB_Off();
+            VS_Off();
+            VOM_Sampling_Stop();
+
+            H_Bridge_State = HB_TASK_IDLE;
+    
+            break;
         }
         default:
             break;
     }
+
+    return;
 }

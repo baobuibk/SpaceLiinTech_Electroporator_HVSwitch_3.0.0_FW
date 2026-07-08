@@ -14,6 +14,8 @@
 #include "fsp.h"
 
 #include "uart_driver.h"
+#include "crc.h"
+
 #include "board.h"
 #include "app.h"
 
@@ -40,29 +42,36 @@ uint8_t is_measure_volt_notify_enable = 0;
 static void fsp_print(uint8_t packet_length);
 
 static void CMD_ClearCLI(EmbeddedCli *cli, char *args, void *context);
-static void CMD_Reset(EmbeddedCli *cli, char *args, void *context);
+static void CMD_SYSTEM_RESET_GP_SW(EmbeddedCli *cli, char *args, void *context);
+static void CMD_SYSTEM_RESET_GP_CTRL(EmbeddedCli *cli, char *args, void *context);
+static void CMD_SYSTEM_RESET_GP_ALL(EmbeddedCli *cli, char *args, void *context);
 
 /*----------------------CMD FOR CAP CONTROL--------------------------------*/
-
 static void	CMD_SET_CAP_VOLT_ALL(EmbeddedCli *cli, char *args, void *context);
 static void	CMD_SET_CAP_VOLT_HV (EmbeddedCli *cli, char *args, void *context);
 static void CMD_SET_CAP_VOLT_LV (EmbeddedCli *cli, char *args, void *context);
 static void CMD_SET_CAP_CONTROL (EmbeddedCli *cli, char *args, void *context);
 static void CMD_SET_CAP_RELEASE (EmbeddedCli *cli, char *args, void *context);
-static void CMD_RESET_CAP_OVV (EmbeddedCli *cli, char *args, void *context);
 
 static void CMD_GET_CAP_STATE (EmbeddedCli *cli, char *args, void *context);
 static void CMD_GET_CAP_VOLT (EmbeddedCli *cli, char *args, void *context);
 static void CMD_GET_CAP_CONTROL (EmbeddedCli *cli, char *args, void *context);
 static void	CMD_GET_CAP_RELEASE (EmbeddedCli *cli, char *args, void *context);
 static void CMD_GET_CAP_ALL (EmbeddedCli *cli, char *args, void *context);
-static void CMD_GET_CAP_OVV (EmbeddedCli *cli, char *args, void *context);
 
 /*----------------------CMD FOR MEASURE--------------------------------*/
-
 static void CMD_MEASURE_VOLT (EmbeddedCli *cli, char *args, void *context);
 static void CMD_MEASURE_IMPEDANCE (EmbeddedCli *cli, char *args, void *context);
 
+static void CMD_SET_CURRENT_LIMIT (EmbeddedCli *cli, char *args, void *context);
+static void CMD_GET_CURRENT_LIMIT (EmbeddedCli *cli, char *args, void *context);
+
+static void CMD_GET_OVV_FLAG (EmbeddedCli *cli, char *args, void *context);
+static void CMD_RESET_OVV_FLAG_HV (EmbeddedCli *cli, char *args, void *context);
+static void CMD_RESET_OVV_FLAG_LV (EmbeddedCli *cli, char *args, void *context);
+
+static void CMD_GET_OVC_FLAG (EmbeddedCli *cli, char *args, void *context);
+static void CMD_RESET_OVC_FLAG (EmbeddedCli *cli, char *args, void *context);
 
 /*----------------------CMD FOR H BRIDGE CONTROL-----------------------------*/
 
@@ -113,6 +122,12 @@ static void CMD_SET_SENSOR_H3LIS_FS (EmbeddedCli *cli, char *args, void *context
 static void CMD_GET_SENSOR_H3LIS_VALUE (EmbeddedCli *cli, char *args, void *context);
 static void CMD_GET_SENSOR_H3LIS_FS (EmbeddedCli *cli, char *args, void *context);
 
+static void CMD_GET_SENSOR_HV_TEMP (EmbeddedCli *cli, char *args, void *context);
+static void CMD_GET_SENSOR_LV_TEMP (EmbeddedCli *cli, char *args, void *context);
+
+
+/*----------------------CMD FOR DEBUG -----------------------------*/
+
 
 
 /*************************************************
@@ -121,32 +136,47 @@ static void CMD_GET_SENSOR_H3LIS_FS (EmbeddedCli *cli, char *args, void *context
 
 
 static const CliCommandBinding cliStaticBindings_internal[] = {
+	/*------------------------------------------ SYSTEM CMD --------------------------------------------------------------------- */
     { NULL, "HELP",         			"format: help",                                     false, NULL, CMD_Help },
-    { NULL, "RESET",        			"Reset MCU: reset",                                 false, NULL, CMD_Reset },
+    { NULL, "SYSTEM_RESET_GP_ALL",      "Reset all system: reset",                          false, NULL, CMD_SYSTEM_RESET_GP_ALL },
+	{ NULL, "SYSTEM_RESET_GP_SW",      	"Reset SW system: reset",                          	false, NULL, CMD_SYSTEM_RESET_GP_SW },
+	{ NULL, "SYSTEM_RESET_GP_CTRL",     "Reset CTRL system: reset",                         false, NULL, CMD_SYSTEM_RESET_GP_CTRL },
     { NULL, "CLR",         				"Clears the console",                               false, NULL, CMD_ClearCLI },
 
+	/*------------------------------------------ CAP CONTROL CMD ----------------------------------------------------------------- */
 	{ NULL,	"SET_CAP_VOLT_ALL", 		"format: SET_CAP_VOLT_ALL [HV_Volt] [LV_Volt]",		true,NULL,CMD_SET_CAP_VOLT_ALL},
 	{ NULL,	"SET_CAP_VOLT_HV", 			"format: SET_CAP_VOLT_HV [HV_Volt]",				true,NULL,CMD_SET_CAP_VOLT_HV},
 	{ NULL,	"SET_CAP_VOLT_LV", 			"format: SET_CAP_VOLT_LV [LV_Volt]",				true,NULL,CMD_SET_CAP_VOLT_LV},
 	{ NULL,	"SET_CAP_CONTROL", 			"format: SET_CAP_CONTROL [N] [S]",					true,NULL,CMD_SET_CAP_CONTROL},
 	{ NULL,	"SET_CAP_RELEASE", 			"format: SET_CAP_RELEASE [N] [S]",					true,NULL,CMD_SET_CAP_RELEASE},
-	{ NULL,	"RESET_CAP_OVV", 			"format: RESET_CAP_OVV [N] [S]",					true,NULL,CMD_RESET_CAP_OVV},
 
 	{ NULL,	"GET_CAP_VOLT", 			"format: GET_CAP_VOLT ",							false,NULL,CMD_GET_CAP_VOLT},
 	{ NULL,	"GET_CAP_RELEASE", 			"format: GET_CAP_RELEASE",							false,NULL,CMD_GET_CAP_RELEASE},
 	{ NULL,	"GET_CAP_CONTROL", 			"format: GET_CAP_CONTROL",							false,NULL,CMD_GET_CAP_CONTROL},
 	{ NULL,	"GET_CAP_ALL", 				"format: GET_CAP_ALL",								false,NULL,CMD_GET_CAP_ALL},
 	{ NULL,	"GET_CAP_STATE", 			"format: GET_CAP_STATE",							false,NULL,CMD_GET_CAP_STATE},
-	{ NULL,	"GET_CAP_OVV", 				"format: GET_CAP_OVV",								false,NULL,CMD_GET_CAP_OVV},
 
+	/*------------------------------------------ MEASURE CMD --------------------------------------------------------------------- */
 	{ NULL,	"MEASURE_VOLT", 			"format: MEASURE_VOLT",								false,NULL,CMD_MEASURE_VOLT},
 	{ NULL,	"MEASURE_IMPEDANCE", 		"format: MEASURE_IMPEDANCE [N] [M]",				true,NULL,CMD_MEASURE_IMPEDANCE},
 
+	/*------------------------------------------ CURRENT CONTROL CMD -------------------------------------------------------------- */
+	{ NULL,	"SET_CURRENT_LIMIT", 		"format: SET_CURRENT_LIMIT [N] [S]",				true,NULL,CMD_SET_CURRENT_LIMIT},
+	{ NULL,	"GET_CURRENT_LIMIT", 		"format: GET_CURRENT_LIMIT",						false,NULL,CMD_GET_CURRENT_LIMIT},
+
+	/*------------------------------------------ ERROR HANDLE CMD ----------------------------------------------------------------- */
+	{ NULL,	"GET_OVV_FLAG", 			"format: GET_OVV_FLAG",								false,NULL,CMD_GET_OVV_FLAG},
+	{ NULL,	"RESET_OVV_FLAG", 			"format: RESET_OVV_FLAG",							false,NULL,CMD_RESET_OVV_FLAG_HV},
+	{ NULL,	"RESET_OVV_FLAG", 			"format: RESET_OVV_FLAG",							false,NULL,CMD_RESET_OVV_FLAG_LV},
+	{ NULL,	"GET_OVC_FLAG", 			"format: GET_OVC_FLAG",								false,NULL,CMD_GET_OVC_FLAG},
+	{ NULL,	"RESET_OVC_FLAG", 			"format: RESET_OVC_FLAG",							false,NULL,CMD_RESET_OVC_FLAG},
+
+	/*------------------------------------------ H BRIDGE PULSE CMD --------------------------------------------------------------- */
 	{ NULL,	"SET_SEQUENCE_INDEX", 		"format: SET_SEQUENCE_INDEX [N]",					true,	NULL,CMD_SET_SEQUENCE_INDEX},
 	{ NULL,	"SET_SEQUENCE_DELETE", 		"format: SET_SEQUENCE_DELETE",						false,	NULL,CMD_SET_SEQUENCE_DELETE},
 	{ NULL,	"SET_SEQUENCE_CONFIRM", 	"format: SET_SEQUENCE_CONFIRM",						false,	NULL,CMD_SET_SEQUENCE_CONFIRM},
 	{ NULL,	"SET_SEQUENCE_DELAY", 		"format: SET_SEQUENCE_DELAY [N]",					true,	NULL,CMD_SET_SEQUENCE_DELAY},
-	{ NULL,	"SET_SEQUENCE_DELAY", 		"format: SET_SEQUENCE_DELAY [N]",					true,	NULL,CMD_SET_SEQUENCE_DELAY},
+
 	{ NULL,	"SET_PULSE_POLE", 			"format: SET_PULSE_POLE [N] [M]",					true,	NULL,CMD_SET_PULSE_POLE},
 	{ NULL,	"SET_PULSE_COUNT", 			"format: SET_PULSE_COUNT [N] [S] [X] [Y]",			true,	NULL,CMD_SET_PULSE_COUNT},
 	{ NULL,	"SET_PULSE_DELAY", 			"format: SET_PULSE_DELAY [N] [M] [X]",				true,	NULL,CMD_SET_PULSE_DELAY},
@@ -168,22 +198,28 @@ static const CliCommandBinding cliStaticBindings_internal[] = {
 	{ NULL,	"GET_PULSE_HV", 			"format: GET_PULSE_HV",								false,	NULL,CMD_GET_PULSE_HV},
 	{ NULL,	"GET_PULSE_HV_POS", 		"format: GET_PULSE_HV_POS",							false,	NULL,CMD_GET_PULSE_HV_POS},
 	{ NULL,	"GET_PULSE_HV_NEG", 		"format: GET_PULSE_HV_NEG",							false,	NULL,CMD_GET_PULSE_HV_NEG},
-	{ NULL,	"GET_PULSE_HV", 			"format: GET_PULSE_HV",								false,	NULL,CMD_GET_PULSE_LV},
+	{ NULL,	"GET_PULSE_LV", 			"format: GET_PULSE_LV",								false,	NULL,CMD_GET_PULSE_LV},
 	{ NULL,	"GET_PULSE_LV_POS", 		"format: GET_PULSE_LV_POS",							false,	NULL,CMD_GET_PULSE_LV_POS},
 	{ NULL,	"GET_PULSE_LV_NEG", 		"format: GET_PULSE_LV_NEG",							false,	NULL,CMD_GET_PULSE_LV_NEG},
 	{ NULL,	"GET_PULSE_CONTROL", 		"format: GET_PULSE_CONTROL",						false,	NULL,CMD_GET_PULSE_CONTROL},
 	{ NULL,	"GET_PULSE_ALL", 			"format: GET_PULSE_ALL",							false,	NULL,CMD_GET_PULSE_ALL},
 
+	/*------------------------------------------ SENSOR CMD --------------------------------------------------------------------- */
 	{ NULL,	"GET_SENSOR_GYRO", 			"format: GET_SENSOR_GYRO",							false,	NULL,CMD_GET_SENSOR_GYRO},
 	{ NULL,	"GET_SENSOR_ACCEL", 		"format: GET_SENSOR_ACCEL",							false,	NULL,CMD_GET_SENSOR_ACCEL},
-	{ NULL,	"GET_SENSOR_LSM6DSOX", 		"format: GET_SENSOR_LSM6DSOX",						false,	NULL,CMD_GET_SENSOR_LSM6DSOX},
+	{ NULL,	"GET_SENSOR_LSM6DSOX_DATA",	"format: GET_SENSOR_LSM6DSOX_DATA",					false,	NULL,CMD_GET_SENSOR_LSM6DSOX},
+
 	{ NULL,	"GET_SENSOR_TEMP", 			"format: GET_SENSOR_TEMP",							false,	NULL,CMD_GET_SENSOR_TEMP},
 	{ NULL,	"GET_SENSOR_PRESSURE", 		"format: GET_SENSOR_PRESSURE",						false,	NULL,CMD_GET_SENSOR_PRESSURE},
 	{ NULL,	"GET_SENSOR_ALTITUDE", 		"format: GET_SENSOR_ALTITUDE",						false,	NULL,CMD_GET_SENSOR_ALTITUDE},
-	{ NULL,	"GET_SENSOR_BMP390", 		"format: GET_SENSOR_BMP390",						false,	NULL,CMD_GET_SENSOR_BMP390},
-	{ NULL,	"GET_SENSOR_H3LIS_VALUE", 	"format: GET_SENSOR_H3LIS_VALUE",					false,	NULL,CMD_GET_SENSOR_H3LIS_VALUE},
+	{ NULL,	"GET_SENSOR_BMP390_DATA", 	"format: GET_SENSOR_BMP390_DATA",					false,	NULL,CMD_GET_SENSOR_BMP390},
+
+	{ NULL,	"GET_SENSOR_H3LIS_DATA", 	"format: GET_SENSOR_H3LIS_VALUE",					false,	NULL,CMD_GET_SENSOR_H3LIS_VALUE},
 	{ NULL,	"SET_SENSOR_H3LIS_FS", 		"format: SET_SENSOR_H3LIS_FS [N]",					true,	NULL,CMD_SET_SENSOR_H3LIS_FS},
 	{ NULL,	"GET_SENSOR_H3LIS_FS", 		"format: GET_SENSOR_H3LIS_FS",						false,	NULL,CMD_GET_SENSOR_H3LIS_FS},
+
+	{ NULL,	"GET_SENSOR_HV_TEMP", 		"format: GET_SENSOR_HV_TEMP",						false,	NULL,CMD_GET_SENSOR_HV_TEMP},
+	{ NULL,	"GET_SENSOR_LV_TEMP", 		"format: GET_SENSOR_LV_TEMP",						false,	NULL,CMD_GET_SENSOR_LV_TEMP},
 };
 
 /*************************************************
@@ -360,25 +396,34 @@ static void CMD_SET_CAP_RELEASE (EmbeddedCli *cli, char *args, void *context){
 	return ;
 }
 
-static void CMD_RESET_CAP_OVV (EmbeddedCli *cli, char *args, void *context){
-	uint8_t argc = embeddedCliGetTokenCount(args);
+static void CMD_RESET_OVV_FLAG_HV (EmbeddedCli *cli, char *args, void *context){
 
-	if(argc < 2) {
-		embeddedCliPrint(cli,"> CMDLINE_TOO_FEW_ARGS");
-		return;
-	}
-	else if(argc > 2){
+	uint8_t argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
 		embeddedCliPrint(cli,"> CMDLINE_TOO_MANY_ARGS");
 		return;
 	}
 
-	uint8_t receive_argm[2];
-	receive_argm[0] = atoi(embeddedCliGetToken(args, 1));
-	receive_argm[1] = atoi(embeddedCliGetToken(args, 2));
+	ps_FSP_TX -> CMD = FSP_CMD_RESET_CAP_OVV;
+	ps_FSP_TX -> Payload.reset_ovv_flag.HV_OVV_flag = 0;
+	ps_FSP_TX -> Payload.reset_ovv_flag.LV_OVV_flag = 1;
+	fsp_print(3);
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return ;
+}
+
+static void CMD_RESET_OVV_FLAG_LV (EmbeddedCli *cli, char *args, void *context){
+
+	uint8_t argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"> CMDLINE_TOO_MANY_ARGS");
+		return;
+	}
 
 	ps_FSP_TX -> CMD = FSP_CMD_RESET_CAP_OVV;
-	ps_FSP_TX -> Payload.reset_ovv_flag.HV_OVV_flag = receive_argm[0];
-	ps_FSP_TX -> Payload.reset_ovv_flag.LV_OVV_flag = receive_argm[1];
+	ps_FSP_TX -> Payload.reset_ovv_flag.HV_OVV_flag = 1;
+	ps_FSP_TX -> Payload.reset_ovv_flag.LV_OVV_flag = 0;
 	fsp_print(3);
 
 	embeddedCliPrint(cli,"> CMDLINE_OK");
@@ -467,7 +512,7 @@ static void CMD_GET_CAP_STATE (EmbeddedCli *cli, char *args, void *context){
 	return;
 }
 
-static void CMD_GET_CAP_OVV (EmbeddedCli *cli, char *args, void *context){
+static void CMD_GET_OVV_FLAG (EmbeddedCli *cli, char *args, void *context){
 	int argc = embeddedCliGetTokenCount(args);
 
 	if(argc != 0){
@@ -494,8 +539,6 @@ static void CMD_MEASURE_VOLT (EmbeddedCli *cli, char *args, void *context){
 		return;
 	}
 
-	is_measure_volt_notify_enable = true;
-
 	ps_FSP_TX -> CMD = FSP_CMD_MEASURE_VOLT;
 	fsp_print(1);
 	
@@ -506,7 +549,7 @@ static void CMD_MEASURE_VOLT (EmbeddedCli *cli, char *args, void *context){
 
 static void CMD_MEASURE_IMPEDANCE (EmbeddedCli *cli, char *args, void *context){
 
-	if(is_h_bridge_enable == true){
+	if(H_Bridge_State != HB_TASK_IDLE){
 		embeddedCliPrint(cli, "> H BRIDGE PULSING IS IN PROGRESS");
 		return;
 	}
@@ -537,6 +580,96 @@ static void CMD_MEASURE_IMPEDANCE (EmbeddedCli *cli, char *args, void *context){
 
 	embeddedCliPrint(cli,"> CMDLINE_OK");
 	return;
+}
+
+static void CMD_SET_CURRENT_LIMIT (EmbeddedCli *cli, char *args, void *context){
+
+	uint8_t argc = embeddedCliGetTokenCount(args);
+
+	if (argc < 2) {
+		embeddedCliPrint(cli, "> CMDLINE_TOO_FEW_ARGS");
+		return;
+	}
+	else if (argc > 2) {
+		embeddedCliPrint(cli, "> CMDLINE_TOO_MANY_ARGS");
+		return;
+	}
+
+	uint8_t receive_argm[2];
+	receive_argm[0] = atoi(embeddedCliGetToken(args, 1));
+	receive_argm[1] = atoi(embeddedCliGetToken(args, 2));
+
+	if ((receive_argm[0] > 11) || (receive_argm[0] < 0)){
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
+		return;
+	}
+	if ((receive_argm[1] > 9) || (receive_argm[1] < 0)){
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
+		return;
+	}
+	if ((receive_argm[0] == 11) && (receive_argm[1] > 7)){
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
+		return;
+	}
+
+	if ((receive_argm[0] == 0) && (receive_argm[1] == 0)){
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
+		return;
+	}
+
+	float current_limit = (float)receive_argm[0] + ((float)receive_argm[1] * 0.1f);
+	VOM_Set_Current_Limit(current_limit);
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;
+}
+
+static void CMD_GET_CURRENT_LIMIT (EmbeddedCli *cli, char *args, void *context){
+
+	uint8_t argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"> CMDLINE_TOO_MANY_ARGS");
+		return;
+	}
+
+	float current_limit = VOM_Get_Current_Limit() * 1000.0f; // Convert to mA
+
+	char msg[64];
+	sprintf(msg, "> OUTPUT CURRENT LIMIT SET AT: %d mA", (int)current_limit);
+	embeddedCliPrint(cli, msg);
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;
+}
+
+static void CMD_GET_OVC_FLAG (EmbeddedCli *cli, char *args, void *context){
+	uint8_t argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"> CMDLINE_TOO_MANY_ARGS");
+		return;
+	}
+
+	bool ovc_flag = VOM_Get_OVC_Flag();
+
+	if(ovc_flag){
+		embeddedCliPrint(cli, "> OVER CURRENT FLAG STATUS IS TRUE");
+	} else {
+		embeddedCliPrint(cli, "> OVER CURRENT FLAG STATUS IS FALSE");
+	}
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;
+}
+
+static void CMD_RESET_OVC_FLAG (EmbeddedCli *cli, char *args, void *context){
+	uint8_t argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"> CMDLINE_TOO_MANY_ARGS");
+		return;
+	}
+	VOM_Reset_OVC_Flag();
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;	
 }
 
 
@@ -869,12 +1002,17 @@ static void	CMD_SET_PULSE_LV_NEG(EmbeddedCli *cli, char *args, void *context){
 
 static void	CMD_SET_PULSE_CONTROL(EmbeddedCli *cli, char *args, void *context){
 
+	if(VOM_Get_OVC_Flag() == true){
+		embeddedCliPrint(cli, "> OVC FLAG STATUS IS TRUE, PLEASE RESET OVC FLAG FIRST");
+		return;
+	}
+
 	if(is_impedance_task_enable == true){
 		embeddedCliPrint(cli, "> IMPEDANCE MEASURE TASK IS IN PROGRESS");
 		return;
 	}
 
-	int argc = embeddedCliGetTokenCount(args);
+	uint8_t argc = embeddedCliGetTokenCount(args);
 
 	if (argc < 1) {
 		embeddedCliPrint(cli, "> CMDLINE_TOO_FEW_ARGS");
@@ -884,23 +1022,22 @@ static void	CMD_SET_PULSE_CONTROL(EmbeddedCli *cli, char *args, void *context){
 		return;
 	}
 
-	uint8_t receive_argm;
-	receive_argm = atoi(embeddedCliGetToken(args, 1));
-
-	if (receive_argm != 1)
-		return;
-
-	is_h_bridge_enable = receive_argm;
-
 	if(Sequence_List[CMD_sequence_index].is_confirm == false) {
 		embeddedCliPrint(cli, "> PLEASE COMFIRM CURRENT SEQUENCE");
 		return;
 	}
 
+	uint8_t receive_argm = atoi(embeddedCliGetToken(args, 1));
+
+	if (receive_argm != 1)
+		return;
+
+	H_Bridge_State = HB_TASK_INIT_STATE;
 	SchedulerTaskEnable(H_BRIDGE_TASK, 1);
 
 	return;
 }
+
 static void CMD_GET_SEQUENCE_ALL (EmbeddedCli *cli, char *args, void *context){
 	int argc = embeddedCliGetTokenCount(args);
 	if(argc != 0){
@@ -1140,12 +1277,11 @@ static void CMD_GET_PULSE_CONTROL (EmbeddedCli *cli, char *args, void *context){
 		return;
 	}
 
-	if(is_h_bridge_enable == true){
+	if(H_Bridge_State != HB_TASK_IDLE){
 		embeddedCliPrint(cli,"> H BRIDGE IS PULSING");
 	}
-	else if(is_h_bridge_enable == false){
+	else if(H_Bridge_State == HB_TASK_IDLE){
 		embeddedCliPrint(cli,"> H BRIDGE IS NOT PULSING");
-	
 	}
 	embeddedCliPrint(cli,"> CMDLINE_OK");
 	return;	
@@ -1194,10 +1330,10 @@ static void CMD_GET_PULSE_ALL (EmbeddedCli *cli, char *args, void *context){
 	sprintf(msg, "> LV PULSE NEG ON TIME: %dms; LV PULSE NEG OFF TIME: %dms",Sequence_List[CMD_sequence_index].lv_neg_on_ms, Sequence_List[CMD_sequence_index].lv_neg_off_ms);
 	embeddedCliPrint(cli, msg);
 
-	if(is_h_bridge_enable == true){
+	if(H_Bridge_State != HB_TASK_IDLE){
 		embeddedCliPrint(cli,"> H BRIDGE IS PULSING");
 	}
-	else if(is_h_bridge_enable == false){
+	else if(H_Bridge_State == HB_TASK_IDLE){
 		embeddedCliPrint(cli,"> H BRIDGE IS NOT PULSING");
 	}
 
@@ -1323,7 +1459,33 @@ static void CMD_GET_SENSOR_H3LIS_FS (EmbeddedCli *cli, char *args, void *context
 
 }
 
+static void CMD_GET_SENSOR_HV_TEMP (EmbeddedCli *cli, char *args, void *context){
+	uint8_t argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
+		return;
+	}
 
+	ps_FSP_TX -> CMD = FSP_CMD_GET_SENSOR_HV_TEMP;
+	fsp_print(1);
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;	
+}
+
+static void CMD_GET_SENSOR_LV_TEMP (EmbeddedCli *cli, char *args, void *context){
+	uint8_t argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
+		return;
+	}
+
+	ps_FSP_TX -> CMD = FSP_CMD_GET_SENSOR_LV_TEMP;
+	fsp_print(1);
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;	
+}
 
 
 
@@ -1343,10 +1505,13 @@ static void CMD_ClearCLI(EmbeddedCli *cli, char *args, void *context) {
     embeddedCliPrint(cli, buffer);
 }
 
-static void CMD_Reset(EmbeddedCli *cli, char *args, void *context) {
+static void CMD_SYSTEM_RESET_GP_SW(EmbeddedCli *cli, char *args, void *context) {
 	NVIC_SystemReset();
     embeddedCliPrint(cli, "");
 }
+
+static void CMD_SYSTEM_RESET_GP_CTRL(EmbeddedCli *cli, char *args, void *context){}
+static void CMD_SYSTEM_RESET_GP_ALL(EmbeddedCli *cli, char *args, void *context){}
 
 
 static void fsp_print(uint8_t packet_length)

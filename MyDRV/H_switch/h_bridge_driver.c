@@ -104,6 +104,31 @@ void HB_Off(void){
 	GPIOC->BSRR = 0xFFFF0000;
 }
 
+bool HB_Is_Phase_Done(void) {
+    return is_sequence_arr_done && is_sequence_bsrr_done;
+}
+
+void HB_Clear_Sequence(void) {
+    event_count = 0;
+
+    memset(arr_buf, 0, sizeof(arr_buf));
+    memset(gpio_buf, 0, sizeof(gpio_buf));
+}
+
+void HB_Stop_Priority(void) {
+
+    LL_TIM_DisableDMAReq_UPDATE(TIM1);
+    LL_TIM_DisableDMAReq_CC4(TIM1);
+
+    LL_DMA_DisableStream(DMA2,LL_DMA_STREAM_5);
+    LL_DMA_DisableStream(DMA2,LL_DMA_STREAM_4);
+
+    LL_TIM_DisableCounter(TIM1);
+
+    is_sequence_arr_done = true;
+    is_sequence_bsrr_done = true;
+}
+
 void DMA_GPIO_Start(uint32_t len)
 {
     LL_DMA_DisableStream(DMA2, LL_DMA_STREAM_5);
@@ -136,17 +161,6 @@ void DMA_ARR_Start(uint32_t len)
 	LL_DMA_EnableStream(DMA2,LL_DMA_STREAM_4);
 }
 
-bool HB_Is_Phase_Done(void) {
-    return is_sequence_arr_done && is_sequence_bsrr_done;
-}
-
-void HB_Clear_Sequence(void) {
-    event_count = 0;
-
-    memset(arr_buf, 0, sizeof(arr_buf));
-    memset(gpio_buf, 0, sizeof(gpio_buf));
-}
-
 void HB_Start(void)
 {
     is_sequence_arr_done = false;
@@ -171,20 +185,18 @@ void HB_Start(void)
     LL_TIM_EnableCounter(TIM1);
 }
 
+
+/*---------------------------- VS DMA ISR FUNCTION -----------------------------*/
 void DMA2_Stream5_IRQHandler(void)
 {
     if(LL_DMA_IsActiveFlag_TC5(DMA2))
     {
         LL_DMA_ClearFlag_TC5(DMA2);
 
-//        LL_TIM_DisableCounter(TIM1);
 
         LL_TIM_DisableDMAReq_UPDATE(TIM1);
-//        LL_TIM_DisableDMAReq_CC4(TIM1);
 
         LL_DMA_DisableStream(DMA2,LL_DMA_STREAM_5);
-
-//        LL_DMA_DisableStream( DMA2,LL_DMA_STREAM_4);
 
         is_sequence_bsrr_done = true;
     }
@@ -196,13 +208,7 @@ void DMA2_Stream4_IRQHandler(void)
     {
         LL_DMA_ClearFlag_TC4(DMA2);
 
-//        LL_TIM_DisableCounter(TIM1);
-
-//        LL_TIM_DisableDMAReq_UPDATE(TIM1);
         LL_TIM_DisableDMAReq_CC4(TIM1);
-
-//        LL_DMA_DisableStream(DMA2,LL_DMA_STREAM_5);
-
         LL_DMA_DisableStream( DMA2,LL_DMA_STREAM_4);
 
         is_sequence_arr_done = true;

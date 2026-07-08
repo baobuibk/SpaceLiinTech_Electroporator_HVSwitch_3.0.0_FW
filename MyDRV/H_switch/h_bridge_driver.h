@@ -31,6 +31,7 @@ uint32_t HB_Pulse(uint8_t ch, uint8_t mass_ch, uint32_t ton_us, uint32_t toff_us
 uint32_t HB_Delay(uint8_t ch_1, uint8_t ch_2, uint32_t delay_us);
 void HB_Off(void);
 void HB_Start(void);
+void HB_Stop_Priority(void);
 
 bool HB_Is_Phase_Done(void);
 void HB_Clear_Sequence(void);
