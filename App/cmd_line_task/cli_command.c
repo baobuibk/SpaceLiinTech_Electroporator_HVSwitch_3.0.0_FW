@@ -108,6 +108,9 @@ static void CMD_GET_PULSE_LV_NEG (EmbeddedCli *cli, char *args, void *context);
 static void CMD_GET_PULSE_CONTROL (EmbeddedCli *cli, char *args, void *context);
 static void CMD_GET_PULSE_ALL (EmbeddedCli *cli, char *args, void *context);
 
+/*----------------------CMD FOR ACCEL PULSING -----------------------------*/
+
+
 /*----------------------CMD FOR READ SENSOR-----------------------------*/
 static void CMD_GET_SENSOR_GYRO (EmbeddedCli *cli, char *args, void *context);
 static void CMD_GET_SENSOR_ACCEL (EmbeddedCli *cli, char *args, void *context);
