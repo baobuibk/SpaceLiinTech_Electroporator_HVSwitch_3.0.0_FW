@@ -508,6 +508,26 @@ uint8_t FSP_Line_Process(void)
 
         break;
     }
+    case FSP_CMD_GET_THRESHOLD_ACCEL:
+    {
+		int32_t threshold_accel_mg = 	(int32_t)ps_FSP_RX->Payload.get_threshold_accel.threshold_total_mg[0]|
+                              	  		((int32_t)ps_FSP_RX->Payload.get_threshold_accel.threshold_total_mg[1] << 8)|
+								  		((int32_t)ps_FSP_RX->Payload.get_threshold_accel.threshold_total_mg[2] << 16)|
+								  		((int32_t)ps_FSP_RX->Payload.get_threshold_accel.threshold_total_mg[3] << 24);
+
+        char msg[128];
+		sprintf(msg, "THRESHOLD ACCEL:%d MG\n\r> ", threshold_accel_mg);
+        UART_Driver_SendString(&XBEE_UART, msg);     
+
+        break;        
+    }
+    case FSP_CMD_AUTO_ACCEL_TRIGGER:
+    {
+        H_Bridge_State = HB_TASK_INIT_STATE;
+	    SchedulerTaskEnable(H_BRIDGE_TASK, 1);
+
+        break;
+    }
 
 	default:
 		return 0;

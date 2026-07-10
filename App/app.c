@@ -7,7 +7,6 @@
 
 static void Status_Led(void*);
 
-int test = 0;
 
 #define         SCHEDULER_TASK_COUNT  6
 uint32_t        g_ui32SchedulerNumTasks = SCHEDULER_TASK_COUNT;
@@ -37,7 +36,6 @@ void App_Main(void)
 
     while (1)
     {
-    	test++;
        SchedulerRun();
     }
 }

@@ -15,7 +15,7 @@
 #include <stdio.h>
 
 extern uint8_t CMD_sequence_index ;
-extern uint8_t is_measure_volt_notify_enable ;
+
 
 
 // extern uint16_t hv_set_volt ;
