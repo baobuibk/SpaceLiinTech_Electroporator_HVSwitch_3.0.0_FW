@@ -36,6 +36,7 @@
 #include "INA229.h"
 
 // USER DIVICE //
+#include "INA229.h"
 
 // INCLUDE TASK //
 #include "xbee_cmd_task.h"
@@ -43,6 +44,7 @@
 #include "fsp_line_task.h"
 #include "vom_task.h"
 #include "impedance_task.h"
+//#include "accel_pulsing_task.h"
 
 
 

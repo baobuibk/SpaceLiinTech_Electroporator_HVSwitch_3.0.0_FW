@@ -33,7 +33,7 @@ static uint8_t ChannelMapping[8] = {0, 1, 2, 3, 4, 5, 6, 7};
  *                GLobal variable                 *
  *************************************************/
 uint8_t CMD_sequence_index = 0;
-uint8_t is_measure_volt_notify_enable = 0;
+uint16_t h3lis_fs = 400;
 
 
 /*************************************************
@@ -75,6 +75,8 @@ static void CMD_RESET_OVC_FLAG (EmbeddedCli *cli, char *args, void *context);
 
 /*----------------------CMD FOR H BRIDGE CONTROL-----------------------------*/
 
+static void	CMD_GET_PULSE_MODE(EmbeddedCli *cli, char *args, void *context);
+
 static void	CMD_SET_SEQUENCE_INDEX(EmbeddedCli *cli, char *args, void *context);
 static void	CMD_SET_SEQUENCE_DELETE (EmbeddedCli *cli, char *args, void *context);
 static void CMD_SET_SEQUENCE_CONFIRM (EmbeddedCli *cli, char *args, void *context);
@@ -109,7 +111,9 @@ static void CMD_GET_PULSE_CONTROL (EmbeddedCli *cli, char *args, void *context);
 static void CMD_GET_PULSE_ALL (EmbeddedCli *cli, char *args, void *context);
 
 /*----------------------CMD FOR ACCEL PULSING -----------------------------*/
-
+static void CMD_SET_THRESHOLD_ACCEL (EmbeddedCli *cli, char *args, void *context);
+static void CMD_GET_THRESHOLD_ACCEL (EmbeddedCli *cli, char *args, void *context);
+static void CMD_SET_AUTO_ACCEL (EmbeddedCli *cli, char *args, void *context);
 
 /*----------------------CMD FOR READ SENSOR-----------------------------*/
 static void CMD_GET_SENSOR_GYRO (EmbeddedCli *cli, char *args, void *context);
@@ -188,6 +192,12 @@ static const CliCommandBinding cliStaticBindings_internal[] = {
 	{ NULL,	"SET_PULSE_LV_POS", 		"format: SET_PULSE_LV_POS [N] [S]",					true,	NULL,CMD_SET_PULSE_LV_POS},
 	{ NULL,	"SET_PULSE_LV_NEG", 		"format: SET_PULSE_LV_NEG [N] [S]",					true,	NULL,CMD_SET_PULSE_LV_NEG},
 	{ NULL,	"SET_PULSE_CONTROL", 		"format: SET_PULSE_CONTROL [N]",					true,	NULL,CMD_SET_PULSE_CONTROL},
+
+	{ NULL,	"SET_AUTO_ACCEL", 			"format: SET_AUTO_ACCEL [ON/OFF]",					true,	NULL,CMD_SET_AUTO_ACCEL},
+	{ NULL,	"SET_THRESHOLD_ACCEL", 		"format: SET_THRESHOLD_ACCEL [val][g/mg]",			true,	NULL,CMD_SET_THRESHOLD_ACCEL},
+	{ NULL,	"GET_THRESHOLD_ACCEL", 		"format: GET_THRESHOLD_ACCEL",						false,	NULL,CMD_GET_THRESHOLD_ACCEL},
+
+	{ NULL,	"GET_PULSE_MODE", 			"format: GET_PULSE_MODE ",							false,	NULL,CMD_GET_PULSE_MODE},
 
 	{ NULL,	"GET_SEQUENCE_INDEX", 		"format: GET_SEQUENCE_INDEX ",						false,	NULL,CMD_GET_SEQUENCE_INDEX},
 	{ NULL,	"GET_SEQUENCE_DELETE", 		"format: GET_SEQUENCE_DELETE",						false,	NULL,CMD_GET_SEQUENCE_DELETE},
@@ -1010,8 +1020,8 @@ static void	CMD_SET_PULSE_CONTROL(EmbeddedCli *cli, char *args, void *context){
 		return;
 	}
 
-	if(is_impedance_task_enable == true){
-		embeddedCliPrint(cli, "> IMPEDANCE MEASURE TASK IS IN PROGRESS");
+	if(H_Bridge_Mode == HB_MODE_AUTO_ACCEL){
+		embeddedCliPrint(cli, "> AUTO PULSING MODE IS ON, PLEASE STOP IT FIRST");
 		return;
 	}
 
@@ -1040,6 +1050,129 @@ static void	CMD_SET_PULSE_CONTROL(EmbeddedCli *cli, char *args, void *context){
 
 	return;
 }
+
+
+static void CMD_SET_THRESHOLD_ACCEL (EmbeddedCli *cli, char *args, void *context){
+	/*--------------------- FOR ALL AXIS -------------------------*/
+	uint8_t argc = embeddedCliGetTokenCount(args);
+	if (argc < 2) {
+		embeddedCliPrint(cli, "> CMDLINE_TOO_FEW_ARGS");
+		return;
+	} else if (argc > 2) {
+		embeddedCliPrint(cli, "> CMDLINE_TOO_MANY_ARGS");
+		return;
+	}
+
+	int32_t threshold_accel = atoi(embeddedCliGetToken(args, 1));
+
+	if(strcmp(embeddedCliGetToken(args, 2), "G") == 0){
+		threshold_accel = threshold_accel * 1000; // Convert G to mg
+	} 
+	else if(strcmp(embeddedCliGetToken(args, 2), "MG") == 0){
+		// Ở đây hok làm gì hehe :33333
+	} 
+	else {
+		embeddedCliPrint(cli, "> CMDLINE_INVALID_ARG");
+		return;
+	}
+
+	if(h3lis_fs == 400){
+		if(threshold_accel > 400000 || threshold_accel < 0){
+			embeddedCliPrint(cli, "> CMDLINE_INVALID_ARG");
+			return;
+		}
+	}
+
+	if(h3lis_fs == 200){
+		if(threshold_accel > 200000 || threshold_accel < 0){
+			embeddedCliPrint(cli, "> CMDLINE_INVALID_ARG");
+			return;
+		}
+	}
+	
+	if(h3lis_fs == 100){
+		if(threshold_accel > 100000 || threshold_accel < 0){
+			embeddedCliPrint(cli, "> CMDLINE_INVALID_ARG");
+			return;
+		}
+	}
+
+
+	ps_FSP_TX -> CMD = FSP_CMD_SET_THRESHOLD_ACCEL;
+	ps_FSP_TX -> Payload.set_threshold_accel.threshold_total_mg[0] = (uint8_t)(threshold_accel & 0xFF);
+	ps_FSP_TX -> Payload.set_threshold_accel.threshold_total_mg[1] = (uint8_t)((threshold_accel >> 8) & 0xFF);
+	ps_FSP_TX -> Payload.set_threshold_accel.threshold_total_mg[2] = (uint8_t)((threshold_accel >> 16) & 0xFF);
+	ps_FSP_TX -> Payload.set_threshold_accel.threshold_total_mg[3] = (uint8_t)((threshold_accel >> 24) & 0xFF);
+	
+	fsp_print(17);
+	
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;
+}
+
+static void CMD_GET_THRESHOLD_ACCEL (EmbeddedCli *cli, char *args, void *context){
+	uint8_t argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
+		return;
+	}
+
+	ps_FSP_TX -> CMD = FSP_CMD_GET_THRESHOLD_ACCEL;
+	fsp_print(1);
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;
+}
+
+static void CMD_SET_AUTO_ACCEL (EmbeddedCli *cli, char *args, void *context){
+	uint8_t argc = embeddedCliGetTokenCount(args);
+	if (argc < 1) {
+		embeddedCliPrint(cli, "> CMDLINE_TOO_FEW_ARGS");
+		return;
+	} else if (argc > 1) {
+		embeddedCliPrint(cli, "> CMDLINE_TOO_MANY_ARGS");
+		return;
+	}
+
+	bool receive_argm = atoi(embeddedCliGetToken(args, 1));
+	if(receive_argm == 1){
+		ps_FSP_TX -> CMD = FSP_CMD_SET_AUTO_ACCEL;
+		ps_FSP_TX -> Payload.set_auto_accel.auto_accel_enable = 1;
+		fsp_print(2);
+
+		H_Bridge_Mode = HB_MODE_AUTO_ACCEL;
+	}
+	else{
+		ps_FSP_TX -> CMD = FSP_CMD_SET_AUTO_ACCEL;
+		ps_FSP_TX -> Payload.set_auto_accel.auto_accel_enable = 0;
+		fsp_print(2);
+
+		H_Bridge_Mode = HB_MODE_MANUAL;
+	}
+	
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;
+}
+
+
+static void	CMD_GET_PULSE_MODE(EmbeddedCli *cli, char *args, void *context){
+	uint8_t argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
+		return;
+	}
+
+	if(H_Bridge_Mode == HB_MODE_AUTO_ACCEL){
+		embeddedCliPrint(cli, "> PULSING MODE: AUTO ACCEL PULSING ");
+	}
+	else if(H_Bridge_Mode == HB_MODE_MANUAL){
+		embeddedCliPrint(cli, "> PULSING MODE: MANUAL PULSING ");
+	}
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;
+}
+
 
 static void CMD_GET_SEQUENCE_ALL (EmbeddedCli *cli, char *args, void *context){
 	int argc = embeddedCliGetTokenCount(args);
@@ -1478,6 +1611,8 @@ static void CMD_SET_SENSOR_H3LIS_FS (EmbeddedCli *cli, char *args, void *context
 	ps_FSP_TX -> Payload.set_sensor_h3lis331dl_fs.fs_value = receive_argm/100;
 
 	fsp_print(2);
+
+	h3lis_fs = receive_argm;
 
 	embeddedCliPrint(cli,"> CMDLINE_OK");
 	return;

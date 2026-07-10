@@ -6,22 +6,12 @@
 
 #define MAX_SEQUENCES 10
 
-typedef enum {
-	HB_PULSE_IDLE = 0,
+typedef enum{
 
-	HB_HV_POS_PULSE,
-	HB_HV_NEG_PULSE,
-	HB_HV_DELAY,
+    HB_MODE_MANUAL = 0,
+    HB_MODE_AUTO_ACCEL
 
-	HB_LV_POS_PULSE,
-	HB_LV_NEG_PULSE,
-	HB_LV_DELAY,
-
-	HB_DELAY,
-
-	HB_SEQUENCE_DELAY,
-
-} H_Bridge_Process_State;
+}H_Bridge_Task_Mode;
 
 typedef enum{
 
@@ -31,6 +21,7 @@ typedef enum{
     HB_TASK_ERROR_STATE,
 
 }H_Bridge_Task_State;
+
 
 typedef struct{
 	bool		is_edit_enable;
@@ -66,11 +57,10 @@ typedef struct{
 }H_Bridge_Sequence_t;
 
 
-
 extern H_Bridge_Sequence_t Sequence_List[MAX_SEQUENCES];
 extern uint8_t 			   total_active_sequences;
 extern H_Bridge_Task_State H_Bridge_State;
-
+extern H_Bridge_Task_Mode  H_Bridge_Mode;
 
 
 void H_Bridge_Task_Init(void);

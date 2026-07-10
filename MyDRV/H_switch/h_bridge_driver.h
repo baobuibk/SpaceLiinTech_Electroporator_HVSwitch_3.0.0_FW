@@ -9,7 +9,7 @@
 #include "stm32f4xx_ll_tim.h"
 #include "v_switch_driver.h"
 
-#define MAX_EVENTS 3200
+#define MAX_EVENTS 3250
 
 typedef struct
 {

@@ -5,16 +5,17 @@
 #include "h_bridge_task.h"
 #include "h_bridge_driver.h"
 #include "vswitch.h"
+#include "xbee_cmd_task.h"
 
 #include <stdint.h>
 #include <stdbool.h>
-
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Global Variable~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 H_Bridge_Sequence_t     Sequence_List[MAX_SEQUENCES] = { 0 };
 uint8_t                 total_active_sequences = 0;
 H_Bridge_Task_State     H_Bridge_State;
+H_Bridge_Task_Mode      H_Bridge_Mode;
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Private Variable~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
@@ -22,32 +23,32 @@ static H_Bridge_Sequence_t default_sequence = {
     .is_edit_enable = false,
 	.is_confirm = false,
 
-    .sequence_delay_ms = 1,
+    .sequence_delay_ms = 100,
 
     .pos_pole_index = 1,
     .neg_pole_index = 6,
 
-    .hv_pos_count = 10,
-    .hv_neg_count = 10,
+    .hv_pos_count = 20,
+    .hv_neg_count = 20,
 
-    .hv_delay_ms = 5,
+    .hv_delay_ms = 100,
 
-    .hv_pos_on_ms = 5,
-    .hv_pos_off_ms = 5,
-    .hv_neg_on_ms = 5,
-    .hv_neg_off_ms = 5,
+    .hv_pos_on_ms = 100,
+    .hv_pos_off_ms = 1000,
+    .hv_neg_on_ms = 100,
+    .hv_neg_off_ms = 1000,
 
-    .pulse_delay_ms = 5,
+    .pulse_delay_ms = 1000,
 
-    .lv_pos_count = 10,
-    .lv_neg_count = 10,
+    .lv_pos_count = 20,
+    .lv_neg_count = 20,
 
-    .lv_delay_ms = 5,
+    .lv_delay_ms = 100,
 
-    .lv_pos_on_ms = 5,
-    .lv_pos_off_ms = 5,
-    .lv_neg_on_ms = 5,
-    .lv_neg_off_ms = 5,
+    .lv_pos_on_ms = 1000,
+    .lv_pos_off_ms = 1000,
+    .lv_neg_on_ms = 1000,
+    .lv_neg_off_ms = 1000,
 };
 
 static H_Bridge_Sequence_t current_seq;
@@ -61,6 +62,7 @@ void H_Bridge_Task_Init(void) {
     total_active_sequences = 0;
 
     H_Bridge_State = HB_TASK_IDLE;
+    H_Bridge_Mode = HB_MODE_MANUAL;
 
     for (uint8_t i = 0; i < MAX_SEQUENCES; i++)
     {
@@ -100,6 +102,9 @@ void H_Bridge_Task(void *) {
         {
 			total_active_sequences = 0;
 
+             if(H_Bridge_Mode == HB_MODE_AUTO_ACCEL)
+            	 H_Bridge_Mode = HB_MODE_MANUAL;
+
 			SchedulerTaskDisable(H_BRIDGE_TASK);
 			break;
         }
@@ -107,6 +112,7 @@ void H_Bridge_Task(void *) {
         case HB_TASK_INIT_STATE: 
         {
             if (total_active_sequences <= 0) {
+
 
                 break;
             }
@@ -162,6 +168,7 @@ void H_Bridge_Task(void *) {
                 VS_Off();
                 VOM_Sampling_Stop();
 
+                UART_Driver_SendString(&XBEE_UART,"H BRIDGE PULSING DONE\r\n> ");
                 H_Bridge_State = HB_TASK_IDLE;
             }
             break;
