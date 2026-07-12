@@ -43,6 +43,7 @@
 #include "h_bridge_task.h"
 #include "fsp_line_task.h"
 #include "vom_task.h"
+#include "vom_log.h"
 #include "impedance_task.h"
 //#include "accel_pulsing_task.h"
 

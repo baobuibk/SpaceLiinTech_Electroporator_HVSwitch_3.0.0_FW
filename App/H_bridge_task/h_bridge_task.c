@@ -102,8 +102,9 @@ void H_Bridge_Task(void *) {
         {
 			total_active_sequences = 0;
 
-             if(H_Bridge_Mode == HB_MODE_AUTO_ACCEL)
-            	 H_Bridge_Mode = HB_MODE_MANUAL;
+            if(H_Bridge_Mode == HB_MODE_AUTO_ACCEL)
+            	H_Bridge_Mode = HB_MODE_MANUAL;
+
 
 			SchedulerTaskDisable(H_BRIDGE_TASK);
 			break;
@@ -112,7 +113,11 @@ void H_Bridge_Task(void *) {
         case HB_TASK_INIT_STATE: 
         {
             if (total_active_sequences <= 0) {
-
+                if(H_Bridge_Mode == HB_MODE_AUTO_ACCEL){
+                	H_Bridge_Mode = HB_MODE_MANUAL;
+                }
+                UART_Driver_SendString(&XBEE_UART,"NO SEQUENCE IS SETTED\r\n> ");
+            	H_Bridge_State = HB_TASK_IDLE;
 
                 break;
             }

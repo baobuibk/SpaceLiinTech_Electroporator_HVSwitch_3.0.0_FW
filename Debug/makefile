@@ -18,6 +18,7 @@ RM := rm -rf
 -include MyDRV/cli/CLI_Setup/subdir.mk
 -include MyDRV/V_switch/subdir.mk
 -include MyDRV/H_switch/subdir.mk
+-include MyDRV/Device/IS66WVS8M8BLL/subdir.mk
 -include MyDRV/Device/INA229/subdir.mk
 -include Drivers/STM32F4xx_HAL_Driver/Src/subdir.mk
 -include Core/Startup/subdir.mk

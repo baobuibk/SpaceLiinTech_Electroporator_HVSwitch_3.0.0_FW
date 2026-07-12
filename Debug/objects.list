@@ -1,4 +1,5 @@
 "./App/H_bridge_task/h_bridge_task.o"
+"./App/VOM_Task/vom_log.o"
 "./App/VOM_Task/vom_task.o"
 "./App/app.o"
 "./App/cmd_line_task/cli_command.o"
@@ -21,6 +22,7 @@
 "./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_usart.o"
 "./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_utils.o"
 "./MyDRV/Device/INA229/INA229.o"
+"./MyDRV/Device/IS66WVS8M8BLL/IS66WVS8M8BLL.o"
 "./MyDRV/H_switch/h_bridge_driver.o"
 "./MyDRV/V_switch/vswitch.o"
 "./MyDRV/cli/CLI_Setup/cli_setup.o"

@@ -6,12 +6,14 @@
  */
 
 #include "vom_task.h"
+
 #include "spi.h"
 #include "INA229.h"
 #include "board.h"
 #include "h_bridge_task.h"
 #include "scheduler.h"
 #include "xbee_cmd_task.h"
+#include "vom_log.h"
 
 #include "stm32f4xx_ll_tim.h"
 
@@ -157,6 +159,7 @@ void VOM_Task (void*){
 * Switch rotation between voltage and current sampling
 * Sammling voltage first, then current, then voltage, then current...
 * Sampling time total is 100us -> 10kHz sampling frequency
+* Save data to PSRAM after 2.54ms
 */
 void VOM_TIM_Sampling_Trigger_ISR(void){
     if (LL_TIM_IsActiveFlag_UPDATE(VOM_TIM_HANDLE))
@@ -179,25 +182,39 @@ void VOM_TIM_Sampling_Trigger_ISR(void){
 }
 
 void VOM_DMA_Receive_Complete_ISR(void) {
-    if (LL_DMA_IsActiveFlag_TC0(VOM_SPI_DMA_HANDLE))
+    if (LL_DMA_IsActiveFlag_TC0(VOM_SPI_DMA_HANDLE)) 
     {
         LL_DMA_ClearFlag_TC0(VOM_SPI_DMA_HANDLE);
         INA229_CS_High(&vom_ina229_dev);
+        
         switch (vom_sampling_state)
         {
             case VOM_SAMPLING_VOLTAGE:
-                voltage_value[idx] = INA229_Parse_BusVoltage_DMA(&vom_ina229_dev) * 33.333333;
+                vom_log_handle.p_vom_data_block->samples[vom_log_handle.p_vom_data_block->sample_count].voltage = INA229_Parse_BusVoltage_DMA(&vom_ina229_dev) * 33.333333;
                 
                 vom_sampling_state = VOM_SAMPLING_CURRENT;
                 break;
 
             case VOM_SAMPLING_CURRENT:
-                current_value[idx] = INA229_Parse_Current_DMA(&vom_ina229_dev);
 
-                idx++;
-                if (idx >= 2000) {
-                    idx = 0; 
+                vom_log_handle.p_vom_data_block->samples[vom_log_handle.p_vom_data_block->sample_count].current = INA229_Parse_Current_DMA(&vom_ina229_dev);
+                
+                vom_log_handle.p_vom_data_block->sample_count++;
+                if (vom_log_handle.p_vom_data_block->sample_count >= VOM_LOG_SAMPLE_SIZE_MAX) 
+                {
+                    IS66_Write_DMA(&vom_is66w_dev, vom_log_handle.psram_address, (uint8_t*)vom_log_handle.p_vom_data_block, sizeof(vom_data_block_t));
+                    uint16_t next_block_index = vom_log_handle.p_vom_data_block->block_index + 1;
+
+                    if(vom_log_handle.p_vom_data_block == &VOM_DATA_BLOCK_A) {
+                        vom_log_handle.p_vom_data_block = &VOM_DATA_BLOCK_B;
+                    } else {
+                        vom_log_handle.p_vom_data_block = &VOM_DATA_BLOCK_A;
+                    }
+
+                    vom_log_handle.p_vom_data_block->sample_count = 0;
+                    vom_log_handle.p_vom_data_block->block_index = next_block_index;
                 }
+
                 vom_sampling_state = VOM_SAMPLING_VOLTAGE;
                 break;
 

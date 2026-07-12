@@ -79,14 +79,13 @@
 #define FSP_BUF_LEN				128
 /***********************************************/
 
-/*********************VOM INA229**********************/
+/********************* VOM INA229 **********************/
 #define VOM_SPI_HANDLE          SPI1
 #define VOM_SPI_IRQ             SPI1_IRQn
 #define VOM_SPI_DMA_HANDLE      DMA2
 #define VOM_SPI_DMA_CHANNEL     LL_DMA_CHANNEL_3
 #define VOM_SPI_DMA_TX_STREAM   LL_DMA_STREAM_3 
 #define VOM_SPI_DMA_RX_STREAM   LL_DMA_STREAM_0
-
 
 #define VOM_SPI_CS_PORT         GPIOA
 #define VOM_SPI_CS_PIN          LL_GPIO_PIN_4
@@ -96,6 +95,19 @@
 
 #define VOM_TIM_HANDLE 			TIM4
 
+
+/********************* VOM IS66W **********************/
+
+#define IS66W_SPI_HANDLE          SPI2
+#define IS66W_SPI_IRQ             SPI2_IRQn
+
+#define IS66W_SPI_DMA_HANDLE      DMA1
+#define IS66W_SPI_DMA_CHANNEL     LL_DMA_CHANNEL_0
+#define IS66W_SPI_DMA_TX_STREAM   LL_DMA_STREAM_4
+#define IS66W_SPI_DMA_RX_STREAM   LL_DMA_STREAM_3
+
+#define IS66W_SPI_CS_PORT         GPIOB
+#define IS66W_SPI_CS_PIN          LL_GPIO_PIN_12
 
 
 

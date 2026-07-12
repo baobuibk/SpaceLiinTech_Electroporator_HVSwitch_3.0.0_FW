@@ -31,6 +31,7 @@ void App_Main(void)
 
    VOM_Init();
    VOM_Timbase_Sampling_Init();
+   VOM_psram_init();
 
    SchedulerInit(10000);
 

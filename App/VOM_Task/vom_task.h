@@ -42,6 +42,7 @@ typedef enum {
 } vom_sampling_state_t;
 
 
+
 extern spi_driver_t    vom_spi;
 extern ina229_t        vom_ina229_dev;
 extern vom_data_t      vom_data;
