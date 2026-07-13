@@ -170,13 +170,14 @@ uint8_t FSP_Line_Process(void)
 	{
 		char msg[64];
 
-		uint16_t hv_raw_vol = 	((uint16_t)ps_FSP_RX -> Payload.measure_volt.HV_raw_volt_high << 8)
-								| ps_FSP_RX -> Payload.measure_volt.HV_raw_volt_low;
-
-		uint16_t lv_raw_vol = 	((uint16_t)ps_FSP_RX -> Payload.measure_volt.LV_raw_volt_high << 8)
-								| ps_FSP_RX -> Payload.measure_volt.LV_raw_volt_low;
-
-		sprintf(msg, "HV cap: %dV, LV cap: %dV\n\r> ", hv_raw_vol, lv_raw_vol);
+		uint32_t hv_raw_mvol = 	(uint32_t)ps_FSP_RX->Payload.measure_volt.HV_raw_volt[0]|
+                              	((uint32_t)ps_FSP_RX->Payload.measure_volt.HV_raw_volt[1] << 8)|
+								((uint32_t)ps_FSP_RX->Payload.measure_volt.HV_raw_volt[2] << 16)|
+								((uint32_t)ps_FSP_RX->Payload.measure_volt.HV_raw_volt[3] << 24);
+        uint16_t lv_raw_mvol = 	(uint16_t)ps_FSP_RX->Payload.measure_volt.LV_raw_volt[0]|
+                              	((uint16_t)ps_FSP_RX->Payload.measure_volt.LV_raw_volt[1] << 8);
+								
+		sprintf(msg, "HV cap: %dmV, LV cap: %dmV\n\r> ", hv_raw_mvol, lv_raw_mvol);
 		UART_Driver_SendString(&XBEE_UART, msg);
 
 		break;
