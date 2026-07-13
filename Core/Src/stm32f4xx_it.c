@@ -182,6 +182,7 @@ void PendSV_Handler(void)
 /**
   * @brief This function handles System tick timer.
   */
+
 void SysTick_Handler(void)
 {
   /* USER CODE BEGIN SysTick_IRQn 0 */
@@ -255,7 +256,6 @@ void TIM4_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM4_IRQn 0 */
 	VOM_TIM_Sampling_Trigger_ISR();
-
   /* USER CODE END TIM4_IRQn 0 */
   /* USER CODE BEGIN TIM4_IRQn 1 */
 
@@ -282,7 +282,6 @@ void UART4_IRQHandler(void)
 {
   /* USER CODE BEGIN UART4_IRQn 0 */
 	UART_Driver_ISR(&GPC_UART);
-
   /* USER CODE END UART4_IRQn 0 */
   /* USER CODE BEGIN UART4_IRQn 1 */
 
