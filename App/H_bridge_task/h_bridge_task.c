@@ -121,7 +121,7 @@ void H_Bridge_Task(void *) {
                 H_Bridge_State = HB_TASK_IDLE;
                 break;
             }
-            // Calculate BSRR for the first sequence
+     
             uint8_t current_HB_sequence_index = 0;
             VS_Clear_Sequence();
             HB_Clear_Sequence();
