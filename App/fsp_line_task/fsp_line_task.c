@@ -56,7 +56,6 @@ void FSP_Line_Task_Init(void)
 
 }
 
-
 void FSP_Line_Task (void*)
 {
 	uint8_t FSP_return, time_out = 0;

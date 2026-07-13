@@ -18,7 +18,7 @@ tSchedulerTask 	g_psSchedulerTable[SCHEDULER_TASK_COUNT] =
                         {&FSP_Line_Task,				(void *) 0,	20, 	0, 	true},
 						{&VOM_Task,						(void *) 0,	1000, 	0, 	false},
 						{&impedance_task,				(void *) 0,	100, 	0, 	false},
-                        {&Status_Led,					(void *) 0,	100000,	0,	false},
+                        {&Status_Led,					(void *) 0,	10000,	0,	false},
                 };
 
 void App_Main(void)
@@ -42,6 +42,5 @@ void App_Main(void)
 
 static void Status_Led(void*)
 {
-
 }
 
