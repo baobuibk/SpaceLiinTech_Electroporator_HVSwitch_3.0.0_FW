@@ -710,11 +710,11 @@ static void	CMD_SET_SEQUENCE_INDEX(EmbeddedCli *cli, char *args, void *context){
 
 	if(user_target_seq_idx > (CMD_sequence_index + 2)){
 		char msg[128];
-		sprintf(msg,"> ERROR YOUR NEXT SEQUENCE INDEX IS: %d, NOT %d\n", total_active_sequences + 1, user_target_seq_idx);
-		UART_Driver_SendString(&XBEE_UART, msg);
+		sprintf(msg,"> ERROR YOUR NEXT SEQUENCE INDEX IS: %d, NOT %d", total_active_sequences + 1, user_target_seq_idx);
+		embeddedCliPrint(cli, msg);
 		
-		sprintf(msg,"> > CURRENT SEQUENCE INDEX: %d\n", total_active_sequences);
-		UART_Driver_SendString(&XBEE_UART, msg);
+		sprintf(msg,"> CURRENT SEQUENCE INDEX: %d", total_active_sequences);
+		embeddedCliPrint(cli, msg);
 		return;
 	}
 
@@ -1035,10 +1035,10 @@ static void	CMD_SET_PULSE_CONTROL(EmbeddedCli *cli, char *args, void *context){
 		return;
 	}
 
-	if(Sequence_List[CMD_sequence_index].is_confirm == false) {
-		embeddedCliPrint(cli, "> PLEASE COMFIRM CURRENT SEQUENCE");
-		return;
-	}
+	// if(Sequence_List[CMD_sequence_index].is_confirm == false) {
+	// 	embeddedCliPrint(cli, "> NO SEQUENCE IS SETTED, PLEASE SETTING SEQUE COMFIRM CURRENT SEQUENCE");
+	// 	return;
+	// }
 
 	uint8_t receive_argm = atoi(embeddedCliGetToken(args, 1));
 

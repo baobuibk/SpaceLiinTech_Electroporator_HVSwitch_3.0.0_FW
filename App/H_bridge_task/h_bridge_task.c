@@ -4,6 +4,7 @@
 
 #include "h_bridge_task.h"
 #include "h_bridge_driver.h"
+#include "cli_command.h"
 #include "vswitch.h"
 #include "xbee_cmd_task.h"
 
@@ -28,27 +29,27 @@ static H_Bridge_Sequence_t default_sequence = {
     .pos_pole_index = 1,
     .neg_pole_index = 6,
 
-    .hv_pos_count = 20,
-    .hv_neg_count = 20,
+    .hv_pos_count = 2,
+    .hv_neg_count = 2,
 
-    .hv_delay_ms = 100,
+    .hv_delay_ms = 10,
 
-    .hv_pos_on_ms = 100,
-    .hv_pos_off_ms = 1000,
-    .hv_neg_on_ms = 100,
-    .hv_neg_off_ms = 1000,
+    .hv_pos_on_ms = 10,
+    .hv_pos_off_ms = 10,
+    .hv_neg_on_ms = 10,
+    .hv_neg_off_ms = 10,
 
-    .pulse_delay_ms = 1000,
+    .pulse_delay_ms = 10,
 
-    .lv_pos_count = 20,
-    .lv_neg_count = 20,
+    .lv_pos_count = 2,
+    .lv_neg_count = 2,
 
-    .lv_delay_ms = 100,
+    .lv_delay_ms = 10,
 
-    .lv_pos_on_ms = 1000,
-    .lv_pos_off_ms = 1000,
-    .lv_neg_on_ms = 1000,
-    .lv_neg_off_ms = 1000,
+    .lv_pos_on_ms = 10,
+    .lv_pos_off_ms = 10,
+    .lv_neg_on_ms = 10,
+    .lv_neg_off_ms = 10,
 };
 
 static H_Bridge_Sequence_t current_seq;
@@ -100,10 +101,14 @@ void H_Bridge_Task(void *) {
     switch (H_Bridge_State) {
         case HB_TASK_IDLE: 
         {
-			total_active_sequences = 0;
+        	total_active_sequences = 0;
 
-             if(H_Bridge_Mode == HB_MODE_AUTO_ACCEL)
+            if(H_Bridge_Mode == HB_MODE_AUTO_ACCEL)
             	 H_Bridge_Mode = HB_MODE_MANUAL;
+
+            for(uint8_t idx = 0; idx <= MAX_SEQUENCES; idx++){
+            	Sequence_List[idx].is_confirm = false;
+            }
 
 			SchedulerTaskDisable(H_BRIDGE_TASK);
 			break;
@@ -112,8 +117,8 @@ void H_Bridge_Task(void *) {
         case HB_TASK_INIT_STATE: 
         {
             if (total_active_sequences <= 0) {
-
-
+                UART_Driver_SendString(&XBEE_UART,"NO SEQUENCE IS SETTED\r\n> ");
+                H_Bridge_State = HB_TASK_IDLE;
                 break;
             }
             // Calculate BSRR for the first sequence
