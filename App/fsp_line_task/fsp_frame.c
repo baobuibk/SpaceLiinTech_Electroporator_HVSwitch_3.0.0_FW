@@ -9,6 +9,7 @@
 #include "fsp_line_task.h"
 #include "cli_command.h"
 #include "impedance_task.h"
+#include "crc.h"
 
 
 #include <stdint.h>

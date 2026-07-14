@@ -35,14 +35,14 @@ vom_data_block_t VOM_DATA_BLOCK_A = {
 	.sample_count = 0,
 	.block_index = 0,
 	.start_timestamp_us = 0,
-	.samples = {0}
+	.samples = {{0}}
 };
 
 vom_data_block_t VOM_DATA_BLOCK_B = {
 	.sample_count = 0,
 	.block_index = 0,
 	.start_timestamp_us = 0,
-	.samples = {0}
+	.samples = {{0}}
 };
 
 vom_log_handle_t vom_log_handle = {

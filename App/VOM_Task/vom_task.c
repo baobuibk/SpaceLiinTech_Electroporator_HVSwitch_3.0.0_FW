@@ -23,8 +23,8 @@
 
 
 
-static float current_value [2000];
-static float voltage_value [2000];
+//static float current_value [2000];
+//static float voltage_value [2000];
 static uint16_t idx = 0;
 
 
