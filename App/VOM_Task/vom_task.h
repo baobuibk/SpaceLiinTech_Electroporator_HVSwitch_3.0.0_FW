@@ -62,6 +62,8 @@ void VOM_Sampling_SetFrequency(uint32_t sampling_freq_hz);
 void VOM_Task (void*);
 
 void VOM_DMA_Receive_Complete_ISR(void);
+void VOM_DMA_Trasmit_Complete_ISR(void);
+
 void VOM_TIM_Sampling_Trigger_ISR(void);
 void VOM_OVC_Handle_ISR(void);
 

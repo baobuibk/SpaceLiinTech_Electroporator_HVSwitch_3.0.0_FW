@@ -36,6 +36,7 @@ void SPI_Init(spi_driver_t* p_spi)
     SPI_Clear_DMA_Flags_Internal(p_spi->dma_handle, p_spi->dma_tx_stream);
     SPI_Clear_DMA_Flags_Internal(p_spi->dma_handle, p_spi->dma_rx_stream);
 
+    LL_DMA_EnableIT_TC(p_spi->dma_handle, p_spi->dma_tx_stream);
     LL_DMA_EnableIT_TC(p_spi->dma_handle, p_spi->dma_rx_stream);
 
     LL_SPI_Enable(p_spi->handle);

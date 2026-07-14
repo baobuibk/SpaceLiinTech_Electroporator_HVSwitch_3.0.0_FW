@@ -134,7 +134,7 @@ static void CMD_GET_SENSOR_LV_TEMP (EmbeddedCli *cli, char *args, void *context)
 
 
 /*----------------------CMD FOR DEBUG -----------------------------*/
-
+static void CMD_GET_PSRAM_BLOCK (EmbeddedCli *cli, char *args, void *context);
 
 
 /*************************************************
@@ -233,11 +233,22 @@ static const CliCommandBinding cliStaticBindings_internal[] = {
 
 	{ NULL,	"GET_SENSOR_HV_TEMP", 		"format: GET_SENSOR_HV_TEMP",						false,	NULL,CMD_GET_SENSOR_HV_TEMP},
 	{ NULL,	"GET_SENSOR_LV_TEMP", 		"format: GET_SENSOR_LV_TEMP",						false,	NULL,CMD_GET_SENSOR_LV_TEMP},
+
+	{ NULL,	"GET_PSRAM_BLOCK", 			"format: GET_PSRAM_BLOCK [BLK_IDX]",				true,	NULL,CMD_GET_PSRAM_BLOCK},
 };
 
 /*************************************************
  *             Command List Function             *
  *************************************************/
+
+static void CMD_GET_PSRAM_BLOCK (EmbeddedCli *cli, char *args, void *context){
+	uint16_t receive_argm = atoi(embeddedCliGetToken(args, 1));
+
+	VOM_Log_Read_Block_Debug(receive_argm);
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;
+}
 
 /*----------------------CMD FOR CAP CONTROL--------------------------------*/
 

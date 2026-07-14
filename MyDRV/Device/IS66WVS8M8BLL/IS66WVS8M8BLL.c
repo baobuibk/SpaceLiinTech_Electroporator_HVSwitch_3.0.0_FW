@@ -36,16 +36,6 @@ bool IS66_Init(is66_psram_t* p_dev)
     SPI_Init(p_dev->spi_drv);
     IS66_CS_Deselect(p_dev);
     
-//   IS66_CS_Select(p_dev);
-//   uint8_t cmd_reset_en = IS66_CMD_RESET_EN;
-//   SPI_Transmit_Polling(p_dev->spi_drv, &cmd_reset_en, 1);
-//   IS66_CS_Deselect(p_dev);
-//
-//   IS66_CS_Select(p_dev);
-//   uint8_t cmd_reset = IS66_CMD_RESET;
-//   SPI_Transmit_Polling(p_dev->spi_drv, &cmd_reset, 1);
-//   IS66_CS_Deselect(p_dev);
-//
     return true;
 }
 

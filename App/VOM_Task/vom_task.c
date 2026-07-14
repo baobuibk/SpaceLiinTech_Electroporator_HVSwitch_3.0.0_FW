@@ -108,9 +108,7 @@ void VOM_Sampling_Stop(void){
     LL_TIM_DisableCounter(VOM_TIM_HANDLE);
     LL_TIM_DisableIT_UPDATE(VOM_TIM_HANDLE);
 
-    idx = 0;
-//    memset(current_value, 0, sizeof(current_value));
-//    memset(voltage_value, 0, sizeof(voltage_value));
+    VOM_Log_Stop();
 }
 
 void VOM_Sampling_SetFrequency(uint32_t sampling_freq_hz){
@@ -190,14 +188,14 @@ void VOM_DMA_Receive_Complete_ISR(void) {
         switch (vom_sampling_state)
         {
             case VOM_SAMPLING_VOLTAGE:
-                vom_log_handle.p_vom_data_block->samples[vom_log_handle.p_vom_data_block->sample_count].voltage = INA229_Parse_BusVoltage_DMA(&vom_ina229_dev) * 33.333333;
+                vom_log_handle.p_vom_data_block->samples[vom_log_handle.p_vom_data_block->sample_count].voltage =(uint16_t) (INA229_Parse_BusVoltage_DMA(&vom_ina229_dev) * 33.333333 * 100);
                 
                 vom_sampling_state = VOM_SAMPLING_CURRENT;
                 break;
 
             case VOM_SAMPLING_CURRENT:
 
-                vom_log_handle.p_vom_data_block->samples[vom_log_handle.p_vom_data_block->sample_count].current = INA229_Parse_Current_DMA(&vom_ina229_dev);
+                vom_log_handle.p_vom_data_block->samples[vom_log_handle.p_vom_data_block->sample_count].current = (uint16_t) (INA229_Parse_Current_DMA(&vom_ina229_dev) * 1000.0f);
                 
                 vom_log_handle.p_vom_data_block->sample_count++;
                 if (vom_log_handle.p_vom_data_block->sample_count >= VOM_LOG_SAMPLE_SIZE_MAX) 
@@ -222,6 +220,14 @@ void VOM_DMA_Receive_Complete_ISR(void) {
                 vom_sampling_state = VOM_SAMPLING_VOLTAGE;
                 break;
         }
+    }
+}
+
+void VOM_DMA_Trasmit_Complete_ISR(void) {
+    if (LL_DMA_IsActiveFlag_TC3(VOM_SPI_DMA_HANDLE))
+    {
+        LL_DMA_ClearFlag_TC3(VOM_SPI_DMA_HANDLE);
+
     }
 }
 

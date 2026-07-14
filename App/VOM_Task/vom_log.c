@@ -6,11 +6,14 @@
  */
 
 #include "vom_log.h"
+#include "xbee_cmd_task.h"
 
 #include "board.h"
 
 #include "stdbool.h"
 #include "stdint.h"
+#include "stdio.h"
+#include "string.h"
 
 
 
@@ -45,6 +48,13 @@ vom_data_block_t VOM_DATA_BLOCK_B = {
 	.samples = {{0}}
 };
 
+vom_data_block_t VOM_DEBUG_BLOCK = {
+    .sample_count = 0,
+    .block_index = 0,
+    .start_timestamp_us = 0,
+    .samples = {{0}}
+};
+
 vom_log_handle_t vom_log_handle = {
 	.psram_address = 0x000000,
 	.p_vom_data_block = &VOM_DATA_BLOCK_A
@@ -56,6 +66,67 @@ void VOM_psram_init(void){
 	IS66_ReadID(&vom_is66w_dev, vom_is66w_dev.IS66_id);
 
 	vom_log_handle.p_vom_data_block = &VOM_DATA_BLOCK_A;
+}
+
+
+void VOM_Log_Stop(void){
+	vom_log_handle.p_vom_data_block = &VOM_DATA_BLOCK_A;
+	vom_log_handle.p_vom_data_block -> block_index = 0;
+	vom_log_handle.psram_address = 0x000000;
+}
+
+void VOM_Log_Read_Block_Debug(uint16_t block_index) {
+	// 1. Tính toán địa chỉ bắt đầu của block trên PSRAM
+	    uint32_t target_address = (uint32_t)block_index * sizeof(vom_data_block_t);
+
+	    // 2. Buffer đệm nhỏ để in từng dòng ra UART (tránh tràn Stack)
+	    char uart_buf[128];
+
+	    // 3. Kiểm tra ranh giới địa chỉ (giới hạn bộ nhớ 8MB là 0x7FFFFF)
+	    if (target_address >= 0x800000) {
+	        UART_Driver_SendString(&XBEE_UART, "\r\n[ERROR] PSRAM Address out of bounds!\r\n");
+	        return;
+	    }
+
+	    // 4. Kéo nguyên block 1024 byte về SRAM nội
+	    IS66_Read(&vom_is66w_dev, target_address, (uint8_t*)&VOM_DEBUG_BLOCK, sizeof(vom_data_block_t));
+
+	    // 5. IN RA CONSOLE - PHẦN HEADER
+	    snprintf(uart_buf, sizeof(uart_buf), "\r\n========== VOM PSRAM BLOCK [%u] ==========\r\n", VOM_DEBUG_BLOCK.block_index);
+	    UART_Driver_SendString(&XBEE_UART, uart_buf);
+
+	    snprintf(uart_buf, sizeof(uart_buf), "Start Timestamp : %lu us\r\n", VOM_DEBUG_BLOCK.start_timestamp_us);
+	    UART_Driver_SendString(&XBEE_UART, uart_buf);
+
+	    snprintf(uart_buf, sizeof(uart_buf), "Sample Count    : %u\r\n", VOM_DEBUG_BLOCK.sample_count);
+	    UART_Driver_SendString(&XBEE_UART, uart_buf);
+
+	    UART_Driver_SendString(&XBEE_UART, "------------------------------------------\r\n");
+	    UART_Driver_SendString(&XBEE_UART, "Idx\tVoltage (mV)\tCurrent (mA)\r\n");
+	    UART_Driver_SendString(&XBEE_UART, "------------------------------------------\r\n");
+
+	    // 6. IN RA CONSOLE - PHẦN PAYLOAD (Dữ liệu lấy mẫu)
+	    // Giới hạn an toàn, tránh vòng lặp chạy lố nếu file bị hỏng
+	    uint16_t print_count = VOM_DEBUG_BLOCK.sample_count;
+	    if (print_count > VOM_LOG_SAMPLE_SIZE_MAX) {
+	        print_count = VOM_LOG_SAMPLE_SIZE_MAX;
+	    }
+
+	    for (uint16_t i = 0; i < print_count; i++) {
+	            // Phục hồi giá trị ra số nguyên
+	            // Điện áp: đang ở đơn vị 10mV -> nhân 10 để thành 1mV
+	            // Ép kiểu (uint32_t) trước khi nhân để không bị tràn thanh ghi 16-bit
+	            uint32_t voltage_mV = (uint32_t)VOM_DEBUG_BLOCK.samples[i].voltage * 10;
+
+	            // Dòng điện: đang ở đơn vị 1mA -> giữ nguyên
+	            uint32_t current_mA = (uint32_t)VOM_DEBUG_BLOCK.samples[i].current;
+
+	            // Định dạng in số nguyên không dấu 32-bit (%lu)
+	            snprintf(uart_buf, sizeof(uart_buf), "%u\t%lu\t\t%lu\r\n", i, voltage_mV, current_mA);
+	            UART_Driver_SendString(&XBEE_UART, uart_buf);
+	        }
+
+	    UART_Driver_SendString(&XBEE_UART, "================ END BLOCK ===============\r\n");
 }
 
 

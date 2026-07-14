@@ -229,6 +229,7 @@ void EXTI0_IRQHandler(void)
 void DMA1_Stream3_IRQHandler(void)
 {
   /* USER CODE BEGIN DMA1_Stream3_IRQn 0 */
+	VOM_Log_DMA_Receive_Complete_ISR();
 
   /* USER CODE END DMA1_Stream3_IRQn 0 */
   /* USER CODE BEGIN DMA1_Stream3_IRQn 1 */
@@ -242,6 +243,7 @@ void DMA1_Stream3_IRQHandler(void)
 void DMA1_Stream4_IRQHandler(void)
 {
   /* USER CODE BEGIN DMA1_Stream4_IRQn 0 */
+	VOM_Log_DMA_Transmit_Complete_ISR();
 
   /* USER CODE END DMA1_Stream4_IRQn 0 */
   /* USER CODE BEGIN DMA1_Stream4_IRQn 1 */
@@ -307,7 +309,7 @@ void DMA2_Stream0_IRQHandler(void)
 void DMA2_Stream3_IRQHandler(void)
 {
   /* USER CODE BEGIN DMA2_Stream3_IRQn 0 */
-
+	VOM_DMA_Trasmit_Complete_ISR();
   /* USER CODE END DMA2_Stream3_IRQn 0 */
   /* USER CODE BEGIN DMA2_Stream3_IRQn 1 */
 

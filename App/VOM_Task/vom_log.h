@@ -44,8 +44,14 @@ extern vom_log_handle_t vom_log_handle;
 extern vom_data_block_t VOM_DATA_BLOCK_A;
 extern vom_data_block_t VOM_DATA_BLOCK_B;
 
+extern vom_data_block_t VOM_DEBUG_BLOCK;
+
 
 void VOM_psram_init(void);
+
+void VOM_Log_Stop(void);
+
+void VOM_Log_Read_Block_Debug(uint16_t block_index);
 
 void VOM_Log_DMA_Transmit_Complete_ISR(void);
 void VOM_Log_DMA_Receive_Complete_ISR(void);
