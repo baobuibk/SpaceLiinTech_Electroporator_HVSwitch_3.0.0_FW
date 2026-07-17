@@ -42,9 +42,9 @@ uint16_t h3lis_fs = 400;
 static void fsp_print(uint8_t packet_length);
 
 static void CMD_ClearCLI(EmbeddedCli *cli, char *args, void *context);
-static void CMD_SYSTEM_RESET_GP_SW(EmbeddedCli *cli, char *args, void *context);
-static void CMD_SYSTEM_RESET_GP_CTRL(EmbeddedCli *cli, char *args, void *context);
-static void CMD_SYSTEM_RESET_GP_ALL(EmbeddedCli *cli, char *args, void *context);
+static void CMD_SYSTEM_RESET_SWC(EmbeddedCli *cli, char *args, void *context);
+static void CMD_SYSTEM_RESET_HVC(EmbeddedCli *cli, char *args, void *context);
+static void CMD_SYSTEM_RESET_ALL(EmbeddedCli *cli, char *args, void *context);
 
 /*----------------------CMD FOR CAP CONTROL--------------------------------*/
 static void	CMD_SET_CAP_VOLT_ALL(EmbeddedCli *cli, char *args, void *context);
@@ -116,6 +116,9 @@ static void CMD_GET_THRESHOLD_ACCEL (EmbeddedCli *cli, char *args, void *context
 static void CMD_SET_AUTO_ACCEL (EmbeddedCli *cli, char *args, void *context);
 
 /*----------------------CMD FOR READ SENSOR-----------------------------*/
+
+static void CMD_GET_SENSOR_HVC_INIT_STATE (EmbeddedCli *cli, char *args, void *context);
+
 static void CMD_GET_SENSOR_GYRO (EmbeddedCli *cli, char *args, void *context);
 static void CMD_GET_SENSOR_ACCEL (EmbeddedCli *cli, char *args, void *context);
 static void CMD_GET_SENSOR_LSM6DSOX (EmbeddedCli *cli, char *args, void *context);
@@ -145,9 +148,9 @@ static void CMD_GET_SENSOR_LV_TEMP (EmbeddedCli *cli, char *args, void *context)
 static const CliCommandBinding cliStaticBindings_internal[] = {
 	/*------------------------------------------ SYSTEM CMD --------------------------------------------------------------------- */
     { NULL, "HELP",         			"format: help",                                     false, NULL, CMD_Help },
-    { NULL, "SYSTEM_RESET_GP_ALL",      "Reset all system: reset",                          false, NULL, CMD_SYSTEM_RESET_GP_ALL },
-	{ NULL, "SYSTEM_RESET_GP_SW",      	"Reset SW system: reset",                          	false, NULL, CMD_SYSTEM_RESET_GP_SW },
-	{ NULL, "SYSTEM_RESET_GP_CTRL",     "Reset CTRL system: reset",                         false, NULL, CMD_SYSTEM_RESET_GP_CTRL },
+    { NULL, "SYSTEM_RESET_ALL",      	"Reset all system: reset",                          false, NULL, CMD_SYSTEM_RESET_ALL },
+	{ NULL, "SYSTEM_RESET_SWC",      	"Reset SW system: reset",                          	false, NULL, CMD_SYSTEM_RESET_SWC },
+	{ NULL, "SYSTEM_RESET_HVC",     	"Reset CTRL system: reset",                         false, NULL, CMD_SYSTEM_RESET_HVC },
     { NULL, "CLR",         				"Clears the console",                               false, NULL, CMD_ClearCLI },
 
 	/*------------------------------------------ CAP CONTROL CMD ----------------------------------------------------------------- */
@@ -218,6 +221,8 @@ static const CliCommandBinding cliStaticBindings_internal[] = {
 	{ NULL,	"GET_PULSE_ALL", 			"format: GET_PULSE_ALL",							false,	NULL,CMD_GET_PULSE_ALL},
 
 	/*------------------------------------------ SENSOR CMD --------------------------------------------------------------------- */
+	{ NULL,	"GET_SENSOR_HVC_INIT_STATE","format: GET_SENSOR_HVC_INIT_STATE",				false,	NULL,CMD_GET_SENSOR_HVC_INIT_STATE},
+
 	{ NULL,	"GET_SENSOR_GYRO", 			"format: GET_SENSOR_GYRO",							false,	NULL,CMD_GET_SENSOR_GYRO},
 	{ NULL,	"GET_SENSOR_ACCEL", 		"format: GET_SENSOR_ACCEL",							false,	NULL,CMD_GET_SENSOR_ACCEL},
 	{ NULL,	"GET_SENSOR_LSM6DSOX_DATA",	"format: GET_SENSOR_LSM6DSOX_DATA",					false,	NULL,CMD_GET_SENSOR_LSM6DSOX},
@@ -1478,6 +1483,21 @@ static void CMD_GET_PULSE_ALL (EmbeddedCli *cli, char *args, void *context){
 
 
 /*----------------------CMD FOR READ SENSOR-----------------------------*/
+
+static void CMD_GET_SENSOR_HVC_INIT_STATE (EmbeddedCli *cli, char *args, void *context){
+	uint8_t argc = embeddedCliGetTokenCount(args);
+	if(argc != 0){
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
+		return;
+	}
+
+	ps_FSP_TX -> CMD = FSP_CMD_GET_SENSOR_HVC_INIT_STATE;
+	fsp_print(1);
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;	
+}
+
 static void CMD_GET_SENSOR_GYRO (EmbeddedCli *cli, char *args, void *context){
 	uint8_t argc = embeddedCliGetTokenCount(args);
 	if(argc != 0){
@@ -1678,13 +1698,15 @@ static void CMD_ClearCLI(EmbeddedCli *cli, char *args, void *context) {
     embeddedCliPrint(cli, buffer);
 }
 
-static void CMD_SYSTEM_RESET_GP_SW(EmbeddedCli *cli, char *args, void *context) {
+static void CMD_SYSTEM_RESET_SWC(EmbeddedCli *cli, char *args, void *context) {
 	NVIC_SystemReset();
     embeddedCliPrint(cli, "");
 }
 
-static void CMD_SYSTEM_RESET_GP_CTRL(EmbeddedCli *cli, char *args, void *context){}
-static void CMD_SYSTEM_RESET_GP_ALL(EmbeddedCli *cli, char *args, void *context){}
+static void CMD_SYSTEM_RESET_HVC(EmbeddedCli *cli, char *args, void *context){
+
+}
+static void CMD_SYSTEM_RESET_ALL(EmbeddedCli *cli, char *args, void *context){}
 
 
 static void fsp_print(uint8_t packet_length)
