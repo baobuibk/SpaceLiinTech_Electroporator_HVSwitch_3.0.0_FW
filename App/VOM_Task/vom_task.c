@@ -14,7 +14,7 @@
 #include "scheduler.h"
 #include "xbee_cmd_task.h"
 #include "vom_log.h"
-
+#include "app.h"
 #include "stm32f4xx_ll_tim.h"
 
 #include <stdint.h>
@@ -234,8 +234,7 @@ void VOM_DMA_Trasmit_Complete_ISR(void) {
 void VOM_OVC_Handle_ISR(void) {
 	H_Bridge_State = HB_TASK_ERROR_STATE;
     vom_data.over_current_flag = true;
-
+    SchedulerTaskEnable(H_BRIDGE_TASK, 1);
     UART_Driver_SendString(&XBEE_UART, "OVER CURRENT DETECTED\r\n> ");
-
 }
 
