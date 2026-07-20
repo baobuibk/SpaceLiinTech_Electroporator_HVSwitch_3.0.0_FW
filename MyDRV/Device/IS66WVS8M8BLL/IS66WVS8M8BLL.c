@@ -96,7 +96,6 @@ bool IS66_Write_DMA(is66_psram_t* p_dev, uint32_t address, const uint8_t* p_data
     IS66_CS_Select(p_dev);
     IS66_Send_Cmd_Address(p_dev, IS66_CMD_WRITE, address);
     
-    // Bắt đầu truyền DMA phần Data
     return SPI_Transmit_DMA(p_dev->spi_drv, p_data, size);
 }
 

@@ -43,7 +43,7 @@ void CMD_Line_Task_Init(void){
 //	LL_USART_TransmitData8(XBEE_UART_HANDLE, 'B');
 //	LL_USART_TransmitData8(XBEE_UART_HANDLE, 'B');
 //	LL_USART_TransmitData8(XBEE_UART_HANDLE, 'B');
-	UART_Driver_SendString(&XBEE_UART, "\n\r WELCOME GP-3000 \n\r");
+	UART_Driver_SendString(&XBEE_UART, "\n\r============== WELCOME GP-3000 ============== \n\r");
 
 	CMD_line_handle = &XBEE_UART;
 

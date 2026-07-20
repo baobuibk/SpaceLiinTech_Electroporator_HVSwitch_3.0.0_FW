@@ -74,19 +74,20 @@ void INA229_Calibrate(ina229_t* dev, double r_shunt_ohms, double max_current_amp
 //    INA229_WriteReg16(dev, INA229_REG_SUVL, (uint16_t)limit_val);
 //}
 
-void INA229_Set_ShuntOverVoltage(ina229_t* dev, double r_shunt_ohms,
-                                  double current_amps)
-{
-    double voltage_v = current_amps * r_shunt_ohms;
-    double lsb = INA229_SOVL_LSB_RANGE0;
+void INA229_Set_ShuntOverVoltage(ina229_t *dev, double r_shunt_ohms,
+		double current_amps) {
+	double voltage_v = current_amps * r_shunt_ohms;
+	double lsb = INA229_SOVL_LSB_RANGE0;
 
-    double raw = voltage_v / lsb;
-    // clamp để tránh tràn int16_t
-    if (raw > 32767.0)  raw = 32767.0;
-    if (raw < -32768.0) raw = -32768.0;
+	double raw = voltage_v / lsb;
+	raw = (raw >= 0.0) ? (raw + 0.5) : (raw - 0.5);
+	if (raw > 32767.0)
+		raw = 32767.0;
+	if (raw < -32768.0)
+		raw = -32768.0;
 
-    int16_t limit_val = (int16_t)raw;   // round, không truncate
-    INA229_WriteReg16(dev, INA229_REG_SOVL, (uint16_t)limit_val);
+	int16_t limit_val = (int16_t) raw;   // round, không truncate
+	INA229_WriteReg16(dev, INA229_REG_SOVL, (uint16_t) limit_val);
 }
 
 void INA229_Set_ShuntUnderVoltage(ina229_t* dev, double r_shunt_ohms,

@@ -43,49 +43,82 @@ void SPI_Init(spi_driver_t* p_spi)
 }
 
 
-bool SPI_Transmit_Polling(spi_driver_t* p_spi, const uint8_t* pData, uint16_t Size)
+SPI_Status_t SPI_Transmit_Polling(spi_driver_t* p_spi, const uint8_t* pData, uint16_t Size)
 {
-    for (uint16_t i = 0; i < Size; i++)
-    {
-        while (!LL_SPI_IsActiveFlag_TXE(p_spi->handle));
+    uint32_t timeout;
+
+    for (uint16_t i = 0; i < Size; i++){
+        timeout = SPI_TIMEOUT;
+        while (!LL_SPI_IsActiveFlag_TXE(p_spi->handle)){
+            if(--timeout == 0) return SPI_Error;
+        }
         LL_SPI_TransmitData8(p_spi->handle, pData[i]);
         
-        // Đọc dữ liệu ảo để xóa cờ RXNE, tránh lỗi Overrun (OVR)
-        while (!LL_SPI_IsActiveFlag_RXNE(p_spi->handle));
-        LL_SPI_ReceiveData8(p_spi->handle); 
+        timeout = SPI_TIMEOUT;
+        while (!LL_SPI_IsActiveFlag_RXNE(p_spi->handle)){
+            if(--timeout == 0) return SPI_Error;
+        }
+        LL_SPI_ReceiveData8(p_spi->handle);
     }
-    while (LL_SPI_IsActiveFlag_BSY(p_spi->handle));
-    return true;
+
+    timeout = SPI_TIMEOUT;
+    while (LL_SPI_IsActiveFlag_BSY(p_spi->handle)){
+        if(--timeout == 0) return SPI_Error;
+    }
+    return SPI_Success;
 }
 
-bool SPI_Receive_Polling(spi_driver_t* p_spi, uint8_t* pData, uint16_t Size)
+
+SPI_Status_t SPI_Receive_Polling(spi_driver_t* p_spi, uint8_t* pData, uint16_t Size)
 {
-    for (uint16_t i = 0; i < Size; i++)
-    {
-        while (!LL_SPI_IsActiveFlag_TXE(p_spi->handle));
+    uint32_t timeout;
+
+    for (uint16_t i = 0; i < Size; i++){
+        timeout = SPI_TIMEOUT;
+        while (!LL_SPI_IsActiveFlag_TXE(p_spi->handle)){
+            if(--timeout == 0) return SPI_Error;
+        }
         LL_SPI_TransmitData8(p_spi->handle, 0xFF); 
         
-        while (!LL_SPI_IsActiveFlag_RXNE(p_spi->handle));
+        timeout = SPI_TIMEOUT;
+        while (!LL_SPI_IsActiveFlag_RXNE(p_spi->handle)){
+            if(--timeout == 0) return SPI_Error;
+        }
         pData[i] = LL_SPI_ReceiveData8(p_spi->handle);
     }
-    while (LL_SPI_IsActiveFlag_BSY(p_spi->handle));
-    return true;
+    timeout = SPI_TIMEOUT;
+    while (LL_SPI_IsActiveFlag_BSY(p_spi->handle)){
+        if(--timeout == 0) return SPI_Error;
+    }
+    return SPI_Success;
 }
 
-bool SPI_TransmitReceive_Polling(spi_driver_t* p_spi, const uint8_t* pTxData, uint8_t* pRxData, uint16_t Size)
+
+SPI_Status_t SPI_TransmitReceive_Polling(spi_driver_t* p_spi, const uint8_t* pTxData, uint8_t* pRxData, uint16_t Size)
 {
-    for (uint16_t i = 0; i < Size; i++)
-    {
-        while (!LL_SPI_IsActiveFlag_TXE(p_spi->handle));
+    uint32_t timeout;
+
+    for (uint16_t i = 0; i < Size; i++){
+        timeout = SPI_TIMEOUT;
+        while (!LL_SPI_IsActiveFlag_TXE(p_spi->handle)){
+            if(--timeout == 0) return SPI_Error;
+        }
         LL_SPI_TransmitData8(p_spi->handle, pTxData[i]);
         
-        while (!LL_SPI_IsActiveFlag_RXNE(p_spi->handle));
+        timeout = SPI_TIMEOUT;
+        while (!LL_SPI_IsActiveFlag_RXNE(p_spi->handle)){
+            if(--timeout == 0) return SPI_Error;
+        }
         pRxData[i] = LL_SPI_ReceiveData8(p_spi->handle);
     }
-    while (LL_SPI_IsActiveFlag_BSY(p_spi->handle));
-    return true;
-}
 
+    timeout = SPI_TIMEOUT;
+    while (LL_SPI_IsActiveFlag_BSY(p_spi->handle)){
+        if(--timeout == 0) return SPI_Error;
+    }
+
+    return SPI_Success;
+}
 
 
 bool SPI_Transmit_DMA(spi_driver_t* p_spi, const uint8_t* pData, uint16_t Size)
@@ -96,7 +129,7 @@ bool SPI_Transmit_DMA(spi_driver_t* p_spi, const uint8_t* pData, uint16_t Size)
 
     LL_DMA_SetMemoryAddress(p_spi->dma_handle, p_spi->dma_tx_stream, (uint32_t)pData);
     LL_DMA_SetDataLength(p_spi->dma_handle, p_spi->dma_tx_stream, Size);
-    
+
     SPI_Clear_DMA_Flags_Internal(p_spi->dma_handle, p_spi->dma_tx_stream);
 
     LL_DMA_EnableStream(p_spi->dma_handle, p_spi->dma_tx_stream);

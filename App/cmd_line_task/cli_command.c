@@ -135,9 +135,13 @@ static void CMD_GET_SENSOR_H3LIS_FS (EmbeddedCli *cli, char *args, void *context
 static void CMD_GET_SENSOR_HV_TEMP (EmbeddedCli *cli, char *args, void *context);
 static void CMD_GET_SENSOR_LV_TEMP (EmbeddedCli *cli, char *args, void *context);
 
-
-/*----------------------CMD FOR DEBUG -----------------------------*/
+/*----------------------CMD FOR VOM -----------------------------*/
 static void CMD_GET_PSRAM_BLOCK (EmbeddedCli *cli, char *args, void *context);
+static void CMD_GET_PSRAM_DATA (EmbeddedCli *cli, char *args, void *context);
+static void CMD_GET_VOM_LOG_BLOCK (EmbeddedCli *cli, char *args, void *context);
+static void CMD_GET_VOM_LOG_TIME (EmbeddedCli *cli, char *args, void *context);
+static void CMD_GET_VOM_LOG_SAMPLE_COUNT (EmbeddedCli *cli, char *args, void *context);
+
 
 
 /*************************************************
@@ -239,7 +243,12 @@ static const CliCommandBinding cliStaticBindings_internal[] = {
 	{ NULL,	"GET_SENSOR_HV_TEMP", 		"format: GET_SENSOR_HV_TEMP",						false,	NULL,CMD_GET_SENSOR_HV_TEMP},
 	{ NULL,	"GET_SENSOR_LV_TEMP", 		"format: GET_SENSOR_LV_TEMP",						false,	NULL,CMD_GET_SENSOR_LV_TEMP},
 
+	/*------------------------------------------ VOM LOG CMD --------------------------------------------------------------------- */
 	{ NULL,	"GET_PSRAM_BLOCK", 			"format: GET_PSRAM_BLOCK [BLK_IDX]",				true,	NULL,CMD_GET_PSRAM_BLOCK},
+	{ NULL,	"GET_PSRAM_DATA", 			"format: GET_PSRAM_DATA [Address][Length]",			true,	NULL,CMD_GET_PSRAM_DATA},
+	{ NULL,	"GET_VOM_LOG_BLOCK", 		"format: GET_VOM_LOG_BLOCK",						false,	NULL,CMD_GET_VOM_LOG_BLOCK},
+	{ NULL,	"GET_VOM_LOG_TIME", 		"format: GET_VOM_LOG_TIME",							false,	NULL,CMD_GET_VOM_LOG_TIME},
+	{ NULL,	"GET_VOM_LOG_SAMPLE_COUNT",	"format: GET_VOM_LOG_SAMPLE_COUNT",					false,	NULL,CMD_GET_VOM_LOG_SAMPLE_COUNT},
 };
 
 /*************************************************
@@ -255,6 +264,33 @@ static void CMD_GET_PSRAM_BLOCK (EmbeddedCli *cli, char *args, void *context){
 	return;
 }
 
+static void CMD_GET_PSRAM_DATA (EmbeddedCli *cli, char *args, void *context){
+	uint8_t argc = embeddedCliGetTokenCount(args);
+	if(argc < 2) {
+		embeddedCliPrint(cli,"> CMDLINE_TOO_FEW_ARGS");
+		return;
+	}
+	else if(argc > 2){
+		embeddedCliPrint(cli,"> CMDLINE_TOO_MANY_ARGS");
+		return;
+	}
+
+	char *endptr;
+	uint32_t adr = (uint32_t)strtoul(embeddedCliGetToken(args, 1), &endptr, 16);
+	if (*endptr != '\0' && *endptr != '\r' && *endptr != '\n') {
+		embeddedCliPrint(cli,"> CMDLINE_INVALID_ARG");
+		return;
+	}
+	uint32_t length = atoi(embeddedCliGetToken(args, 2));
+	VOM_Log_Get_HexDump(adr, length);
+
+	embeddedCliPrint(cli,"> CMDLINE_OK");
+	return;
+}
+
+static void CMD_GET_VOM_LOG_BLOCK (EmbeddedCli *cli, char *args, void *context){}
+static void CMD_GET_VOM_LOG_TIME (EmbeddedCli *cli, char *args, void *context){}
+static void CMD_GET_VOM_LOG_SAMPLE_COUNT (EmbeddedCli *cli, char *args, void *context){}
 /*----------------------CMD FOR CAP CONTROL--------------------------------*/
 
 static void	CMD_SET_CAP_VOLT_ALL(EmbeddedCli *cli, char *args, void *context){
@@ -1705,7 +1741,7 @@ static void CMD_GET_SENSOR_LV_TEMP (EmbeddedCli *cli, char *args, void *context)
  *************************************************/
 static void CMD_ClearCLI(EmbeddedCli *cli, char *args, void *context) {
     char buffer[10];
-    snprintf(buffer, sizeof(buffer), "\33[2J");
+    snprintf(buffer, sizeof(buffer), "\33[2J\33[H");
     embeddedCliPrint(cli, buffer);
 }
 

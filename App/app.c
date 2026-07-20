@@ -25,13 +25,9 @@ void App_Main(void)
 {
    CMD_Line_Task_Init();
    FSP_Line_Task_Init();
-
    VS_Init();
    H_Bridge_Task_Init();
-
    VOM_Init();
-   VOM_Timbase_Sampling_Init();
-   VOM_psram_init();
 
    SchedulerInit(10000);
 

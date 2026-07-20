@@ -14,6 +14,13 @@
 #include "stdint.h"
 #include "stddef.h"
 
+#define SPI_TIMEOUT 500;
+
+typedef enum {
+	SPI_Error = 0,
+	SPI_Success
+}SPI_Status_t;
+
 typedef struct _spi_stdio_typedef
 {
     SPI_TypeDef*    handle;         
@@ -27,13 +34,14 @@ typedef struct _spi_stdio_typedef
 
 } spi_driver_t;
 
-/* Hàm khởi tạo cấu hình cơ bản cho ngoại vi SPI */
+
 void SPI_Init(spi_driver_t* p_spi);
 
-// --- POLLING (BLOCKING) ---
-bool SPI_Transmit_Polling(spi_driver_t* p_spi, const uint8_t* pData, uint16_t Size);
-bool SPI_Receive_Polling(spi_driver_t* p_spi, uint8_t* pData, uint16_t Size);
-bool SPI_TransmitReceive_Polling(spi_driver_t* p_spi, const uint8_t* pTxData, uint8_t* pRxData, uint16_t Size);
+// --- POLLING  ---
+SPI_Status_t SPI_Transmit_Polling(spi_driver_t* p_spi, const uint8_t* pData, uint16_t Size);
+SPI_Status_t SPI_Receive_Polling(spi_driver_t* p_spi, uint8_t* pData, uint16_t Size);
+SPI_Status_t SPI_TransmitReceive_Polling(spi_driver_t* p_spi, const uint8_t* pTxData, uint8_t* pRxData, uint16_t Size);
+
 
 // --- DMA (NON-BLOCKING) ---
 bool SPI_Transmit_DMA(spi_driver_t* p_spi, const uint8_t* pData, uint16_t Size);
